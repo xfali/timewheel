@@ -41,7 +41,7 @@ type Timer struct {
 type TimeWheel struct {
     slots    [] *list.List
     tickTime time.Duration
-    stop     chan bool
+    stop chan bool
     addChan  chan *Timer
     rmChan   chan *Timer
     index    int
@@ -127,7 +127,6 @@ func (tw *TimeWheel) tick(duration time.Duration) {
     }
 }
 
-//应传入缓冲为1的channel
 func (tw *TimeWheel) Add(callback OnTimeout, expireTime time.Duration, data interface{}) (*Timer, error)  {
     if expireTime > tw.tickTime * time.Duration(len(tw.slots)) {
         return nil, errors.New("expireTime out of range")
