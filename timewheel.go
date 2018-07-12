@@ -15,12 +15,18 @@ import (
     "container/list"
     "errors"
     "fmt"
+    "sync/atomic"
 )
 
 const (
     AddChanSize    = 10
     RemoveChanSize = 10
 )
+
+type atomicBool int32
+
+func (b *atomicBool) isSet() bool { return atomic.LoadInt32((*int32)(b)) == 1 }
+func (b *atomicBool) set() { atomic.StoreInt32((*int32)(b), 1) }
 
 type OnTimeout func(interface{})()
 
@@ -29,6 +35,7 @@ type Timer struct {
     time     time.Duration
     data interface{}
     slot int
+    rmFlag atomicBool
 }
 
 type TimeWheel struct {
@@ -93,13 +100,15 @@ func (tw *TimeWheel) add2Slot(timer *Timer) {
     timer.slot = index
     fmt.Printf("slot: %d\n", index)
     l := tw.slots[index]
-    l.PushBack(timer)
+    if !timer.rmFlag.isSet() {
+        l.PushBack(timer)
+    }
 }
 
 func (tw *TimeWheel) removeTimer(timer *Timer) {
     l := tw.slots[timer.slot]
     for e := l.Front(); e != nil; e = e.Next() {
-        if e.Value == timer {
+        if e.Value == timer || e.Value.(*Timer).rmFlag.isSet() {
             l.Remove(e)
             return
         }
@@ -127,11 +136,13 @@ func (tw *TimeWheel) Add(callback OnTimeout, expireTime time.Duration, data inte
         callback:callback,
         time: expireTime,
         data: data,
+        rmFlag : 0,
     }
     tw.addChan <- timer
     return timer, nil
 }
 
 func (tw *TimeWheel) Remove(timer *Timer) {
+    timer.rmFlag.set()
     tw.rmChan <- timer
 }

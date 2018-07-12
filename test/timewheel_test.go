@@ -27,7 +27,8 @@ func TestTimeWheel(t *testing.T) {
     }
 
     tw.Add(f, 1*time.Second, "test1")
-    tw.Add(f, 2*time.Second, "test2")
+    timer, _ := tw.Add(f, 2*time.Second, "test2")
+    tw.Remove(timer)
     tw.Add(f, 3*time.Second, "test3")
     time.Sleep(time.Second)
     tw.Add(f, 4*time.Second, "test4")
@@ -36,9 +37,9 @@ func TestTimeWheel(t *testing.T) {
     for {
         select {
         case <-time.After(10*time.Second):
+            tw.Stop()
+            time.Sleep(time.Second)
             return
-        default:
-            time.Sleep(10 * time.Millisecond)
         }
     }
 
