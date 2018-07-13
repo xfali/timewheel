@@ -63,7 +63,8 @@ func (tw *TimeWheelAsync) Start() {
         now := time.Now()
         cur := now
         for {
-            //增加timer和tick跳动必须二选一，否则增加的timer会计时不准确
+            //FIXME: 增加timer和tick跳动必须二选一，否则增加的timer会计时不准确。
+            //但是当大量同时注册timer时，有可能造成间隔了多个tick才开始回调
             select {
             case <-tw.stop:
                 return

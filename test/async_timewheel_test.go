@@ -52,3 +52,82 @@ func TestAsyncTimeWheel(t *testing.T) {
     }
 
 }
+
+func TestAsyncTimeWheel2(t *testing.T) {
+    tw := async.New(100*time.Millisecond, 8*time.Second)
+    tw.Start()
+
+    now := time.Now()
+    f := func(data interface{}) {
+        fmt.Printf("timeout %d ms %s\n", time.Since(now)/time.Millisecond, data)
+    }
+
+    tw.Add(timewheel.NewTimer(func(data interface{}) {
+        fmt.Printf("timeout %d ms %s\n", time.Since(now)/time.Millisecond, data)
+        tw.Add(timewheel.NewTimer(f , 3*time.Second, "test1 in test0"))
+    }, 3*time.Second, "test0"))
+
+    for {
+        select {
+        case <-time.After(10*time.Second):
+            tw.Stop()
+            time.Sleep(time.Second)
+            return
+        }
+    }
+
+}
+
+func TestAsyncTimeWheel3(t *testing.T) {
+    tw := async.New(100*time.Millisecond, 8*time.Second)
+    tw.Start()
+
+    type mydata struct {
+        str string
+        time time.Time
+    }
+
+    f := func(data interface{}) {
+        fmt.Printf("timeout %d ms %s\n", time.Since(data.(mydata).time)/time.Millisecond, data.(mydata).str)
+    }
+
+    for i:=1; i<=50; i++ {
+        tw.Add(timewheel.NewTimer(f, time.Duration(i*100)*time.Millisecond, mydata{fmt.Sprintf("test%d", i), time.Now()}))
+    }
+
+    for {
+        select {
+        case <-time.After(10*time.Second):
+            tw.Stop()
+            time.Sleep(time.Second)
+            return
+        }
+    }
+
+}
+
+func TestAsyncTimeWheel4(t *testing.T) {
+    tw := async.New(100*time.Millisecond, 8*time.Second)
+    tw.Start()
+
+    now := time.Now()
+    f := func(data interface{}) {
+        fmt.Printf("timeout %d ms %s\n", time.Since(now)/time.Millisecond, data)
+    }
+
+    cancel, _ := tw.Add(timewheel.NewTimer(f, 2*time.Second, "Should be cancel"))
+    tw.Add(timewheel.NewTimer(func(data interface{}) {
+        fmt.Printf("timeout %d ms %s\n", time.Since(now)/time.Millisecond, data)
+        cancel()
+    }, 1*time.Second, "test0"))
+
+    for {
+        select {
+        case <-time.After(10*time.Second):
+            tw.Stop()
+            time.Sleep(time.Second)
+            return
+        }
+    }
+
+}

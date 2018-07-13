@@ -60,3 +60,108 @@ func TestSyncTimeWheel(t *testing.T) {
     }
 
 }
+
+func TestSyncTimeWheel2(t *testing.T) {
+    tw := sync.New(100*time.Millisecond, 5*time.Second)
+    tw.Start()
+
+    now := time.Now()
+    f := func(data interface{}) {
+        fmt.Printf("timeout %d ms %s\n", time.Since(now)/time.Millisecond, data)
+    }
+
+    tw.Add(timewheel.NewTimer(func(data interface{}) {
+        fmt.Printf("timeout %d ms %s\n", time.Since(now)/time.Millisecond, data)
+        tw.Add(timewheel.NewTimer(f , 3*time.Second, "test1 in test0"))
+    }, 3*time.Second, "test0"))
+
+
+    cur := time.Now()
+    timeout := time.After(10*time.Second)
+    for {
+        select {
+        case <- timeout:
+            fmt.Println("close")
+            tw.Stop()
+            time.Sleep(time.Second)
+            return
+        default:
+
+        }
+        time.Sleep(10*time.Millisecond)
+        tick := time.Now()
+        tw.Tick(tick.Sub(cur))
+        cur = tick
+    }
+
+}
+
+func TestSyncTimeWheel3(t *testing.T) {
+    tw := sync.New(100*time.Millisecond, 8*time.Second)
+    tw.Start()
+
+    type mydata struct {
+        str string
+        time time.Time
+    }
+
+    f := func(data interface{}) {
+        fmt.Printf("timeout %d ms %s\n", time.Since(data.(mydata).time)/time.Millisecond, data.(mydata).str)
+    }
+
+    for i:=1; i<=50; i++ {
+        tw.Add(timewheel.NewTimer(f, time.Duration(i*100)*time.Millisecond, mydata{fmt.Sprintf("test%d", i), time.Now()}))
+    }
+
+    cur := time.Now()
+    timeout := time.After(10*time.Second)
+    for {
+        select {
+        case <- timeout:
+            fmt.Println("close")
+            tw.Stop()
+            time.Sleep(time.Second)
+            return
+        default:
+
+        }
+        time.Sleep(10*time.Millisecond)
+        tick := time.Now()
+        tw.Tick(tick.Sub(cur))
+        cur = tick
+    }
+}
+
+func TestSyncTimeWheel4(t *testing.T) {
+    tw := sync.New(100*time.Millisecond, 8*time.Second)
+    tw.Start()
+
+    now := time.Now()
+    f := func(data interface{}) {
+        fmt.Printf("timeout %d ms %s\n", time.Since(now)/time.Millisecond, data)
+    }
+
+    cancel, _ := tw.Add(timewheel.NewTimer(f, 2*time.Second, "Should be cancel"))
+    tw.Add(timewheel.NewTimer(func(data interface{}) {
+        fmt.Printf("timeout %d ms %s\n", time.Since(now)/time.Millisecond, data)
+        cancel()
+    }, 1*time.Second, "test0"))
+
+    cur := time.Now()
+    timeout := time.After(10*time.Second)
+    for {
+        select {
+        case <- timeout:
+            fmt.Println("close")
+            tw.Stop()
+            time.Sleep(time.Second)
+            return
+        default:
+
+        }
+        time.Sleep(10*time.Millisecond)
+        tick := time.Now()
+        tw.Tick(tick.Sub(cur))
+        cur = tick
+    }
+}
