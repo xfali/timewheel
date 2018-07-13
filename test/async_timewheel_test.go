@@ -12,13 +12,14 @@ package test
 
 import (
     "testing"
-    "timewheel"
     "time"
     "fmt"
+    "timewheel/async"
+    "timewheel"
 )
 
-func TestTimeWheel(t *testing.T) {
-    tw := timewheel.NewTimeWheel(100*time.Millisecond, time.Minute)
+func TestAsyncTimeWheel(t *testing.T) {
+    tw := async.New(100*time.Millisecond, time.Minute)
     tw.Start()
 
     now := time.Now()
@@ -26,13 +27,13 @@ func TestTimeWheel(t *testing.T) {
         fmt.Printf("timeout %d ms %s\n", time.Since(now)/time.Millisecond, data)
     }
 
-    tw.Add(f, 1*time.Second, "test1")
-    timer, _ := tw.Add(f, 2*time.Second, "test2")
-    tw.Remove(timer)
-    tw.Add(f, 3*time.Second, "test3")
+    tw.Add(timewheel.NewTimer(f, 1*time.Second, "test1"))
+    cancel, _ := tw.Add(timewheel.NewTimer(f, 2*time.Second, "test2"))
+    cancel()
+    tw.Add(timewheel.NewTimer(f, 3*time.Second, "test3"))
     time.Sleep(time.Second)
-    tw.Add(f, 4*time.Second, "test4")
-    tw.Add(f, 1*time.Hour, "test4")
+    tw.Add(timewheel.NewTimer(f, 4*time.Second, "test4"))
+    tw.Add(timewheel.NewTimer(f, 1*time.Hour, "test4"))
 
     for {
         select {
