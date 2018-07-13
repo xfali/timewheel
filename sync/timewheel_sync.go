@@ -62,7 +62,9 @@ func (tw *TimeWheelsync) add2Slot(timer *SyncTimer) {
     var index int
     length := len(tw.slots)
     if timer.timer.Time < 0 {
-        index = tw.index
+        duration := tw.tickTime * time.Duration(length)
+        index = int(duration + timer.timer.Time / tw.tickTime)
+        index = (index + tw.index) % length
     } else {
         index = int(timer.timer.Time / tw.tickTime)
         if index == 0 {

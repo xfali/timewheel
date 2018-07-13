@@ -19,7 +19,7 @@ type OnTimeout func(interface{}) ()
 type Timer struct {
     //到期时回调
     Callback OnTimeout
-    //过期时间，如果为0，则在下一个tick回调，如果为负数，则在时间轮一个轮转时间后回调
+    //过期时间，如果为0，则在时间轮一个轮转时间后回调，如果为负数，则在轮转时间扣除负值后回调（粒度为1 tick）
     Time     time.Duration
     //回调时回传的数据
     Data     interface{}
@@ -35,7 +35,7 @@ type TimeWheel interface {
     Stop()
 
     //每一个时钟跳动的时间片操作
-    Tick(duration time.Duration)
+    Tick(time.Duration)
 
     //*Timer:增加一个计时器
     //CancelFunc 取消方法

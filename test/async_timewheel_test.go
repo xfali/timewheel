@@ -33,10 +33,14 @@ func TestAsyncTimeWheel(t *testing.T) {
     cancel()
     tw.Add(timewheel.NewTimer(f, 3*time.Second, "test3"))
     time.Sleep(time.Second)
-    tw.Add(timewheel.NewTimer(f, 4*time.Second, "test4"))
-    tw.Add(timewheel.NewTimer(f, 1*time.Hour, "test4"))
+    tw.Add(timewheel.NewTimer(f, 4*time.Second, "test4 +1s"))
+    tw.Add(timewheel.NewTimer(f, 1*time.Hour, "test5 +1s"))
 
-    tw.Add(timewheel.NewTimer(f, -1, "test5"))
+    tw.Add(timewheel.NewTimer(f, -1, "test6 +1s"))
+
+    tw.Add(timewheel.NewTimer(f, -110*time.Millisecond, "test7 +1s"))
+
+    tw.Add(timewheel.NewTimer(f, -2*time.Second, "test8 +1s"))
 
     for {
         select {
