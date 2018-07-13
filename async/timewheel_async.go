@@ -39,6 +39,10 @@ type TimeWheelAsync struct {
 }
 
 func New(tickTime time.Duration, duration time.Duration) *TimeWheelAsync {
+    if tickTime > duration {
+        return nil
+    }
+
     tw := &TimeWheelAsync{
         slots:    make([] *list.List, duration/tickTime),
         tickTime: tickTime,
@@ -47,6 +51,7 @@ func New(tickTime time.Duration, duration time.Duration) *TimeWheelAsync {
         rmChan:   make(chan *ASyncTimer, RemoveChanSize),
         index:    0,
     }
+
     for i := 0; i < len(tw.slots); i++ {
         tw.slots[i] = list.New()
     }
@@ -93,11 +98,17 @@ func (tw *TimeWheelAsync) Stop() {
 }
 
 func (tw *TimeWheelAsync) add2Slot(timer *ASyncTimer) {
-    index := int(timer.timer.Time / tw.tickTime)
-    if index == 0 {
-        index++
+    var index int
+    length := len(tw.slots)
+    if timer.timer.Time < 0 {
+        index = tw.index
     } else {
-        index += tw.index
+        index = int(timer.timer.Time / tw.tickTime)
+        if index == 0 {
+            index = (tw.index + 1) % length
+        } else {
+            index = (index + tw.index) % length
+        }
     }
 
     timer.slot = index

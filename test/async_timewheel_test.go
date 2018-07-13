@@ -19,7 +19,7 @@ import (
 )
 
 func TestAsyncTimeWheel(t *testing.T) {
-    tw := async.New(100*time.Millisecond, time.Minute)
+    tw := async.New(100*time.Millisecond, 8*time.Second)
     tw.Start()
 
     now := time.Now()
@@ -35,6 +35,8 @@ func TestAsyncTimeWheel(t *testing.T) {
     time.Sleep(time.Second)
     tw.Add(timewheel.NewTimer(f, 4*time.Second, "test4"))
     tw.Add(timewheel.NewTimer(f, 1*time.Hour, "test4"))
+
+    tw.Add(timewheel.NewTimer(f, -1, "test5"))
 
     for {
         select {

@@ -33,12 +33,17 @@ type TimeWheelsync struct {
 }
 
 func New(tickTime time.Duration, duration time.Duration) *TimeWheelsync {
+    if tickTime > duration {
+        return nil
+    }
+
     tw := &TimeWheelsync{
         slots:    make([] *list.List, duration/tickTime),
         tickTime: tickTime,
         index:    0,
         stop:     0,
     }
+
     for i := 0; i < len(tw.slots); i++ {
         tw.slots[i] = list.New()
     }
@@ -54,12 +59,19 @@ func (tw *TimeWheelsync) Stop() {
 }
 
 func (tw *TimeWheelsync) add2Slot(timer *SyncTimer) {
-    index := int(timer.timer.Time / tw.tickTime)
-    if index == 0 {
-        index++
+    var index int
+    length := len(tw.slots)
+    if timer.timer.Time < 0 {
+        index = tw.index
     } else {
-        index += tw.index
+        index = int(timer.timer.Time / tw.tickTime)
+        if index == 0 {
+            index = (tw.index + 1) % length
+        } else {
+            index = (index + tw.index) % length
+        }
     }
+
     timer.slot = index
     l := tw.slots[index]
     if !timer.rmFlag.IsSet() {

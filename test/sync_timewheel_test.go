@@ -19,7 +19,7 @@ import (
 )
 
 func TestSyncTimeWheel(t *testing.T) {
-    tw := sync.New(100*time.Millisecond, time.Minute)
+    tw := sync.New(100*time.Millisecond, 8*time.Second)
     tw.Start()
 
     f := func(data interface{}) {
@@ -33,6 +33,8 @@ func TestSyncTimeWheel(t *testing.T) {
     tw.Add(timewheel.NewTimer(f, 3*time.Second, time.Now()))
     tw.Add(timewheel.NewTimer(f, 4*time.Second, time.Now()))
     tw.Add(timewheel.NewTimer(f, 1*time.Hour, time.Now()))
+
+    tw.Add(timewheel.NewTimer(f, -1, time.Now()))
 
     cur := time.Now()
     timeout := time.After(10*time.Second)
