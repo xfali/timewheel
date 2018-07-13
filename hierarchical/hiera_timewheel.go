@@ -8,7 +8,7 @@
  * Description: 
  */
 
-package timewheel
+package hierarchical
 
 import (
     "time"

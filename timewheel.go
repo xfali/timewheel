@@ -17,20 +17,29 @@ import (
 type OnTimeout func(interface{}) ()
 
 type Timer struct {
+    //到期时回调
     Callback OnTimeout
+    //过期时间，如果为0，则在下一个tick回调
     Time     time.Duration
+    //回调时回传的数据
     Data     interface{}
 }
 
 type CancelFunc func()
 
 type TimeWheel interface {
+    //开启时间轮
     Start()
 
+    //关闭时间轮
     Stop()
 
+    //每一个时钟跳动的时间片操作
     Tick(duration time.Duration)
 
+    //*Timer:增加一个计时器
+    //CancelFunc 取消方法
+    //正常为nil，其他返回具体错误
     Add(*Timer) (CancelFunc, error)
 }
 

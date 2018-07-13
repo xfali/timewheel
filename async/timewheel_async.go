@@ -58,6 +58,7 @@ func (tw *TimeWheelAsync) Start() {
         now := time.Now()
         cur := now
         for {
+            //增加timer和tick跳动必须二选一，否则增加的timer会计时不准确
             select {
             case <-tw.stop:
                 return
@@ -65,18 +66,23 @@ func (tw *TimeWheelAsync) Start() {
                 if ok {
                     tw.add2Slot(timer)
                 }
+            default:
+                passTime := time.Since(now)
+                if passTime < tw.tickTime {
+                    time.Sleep(tw.tickTime - passTime)
+                }
+                cur = time.Now()
+                tw.Tick(passTime)
+                now = cur
+            }
+            select {
+            case <-tw.stop:
+                return
             case rmCh, ok := <-tw.rmChan:
                 if ok {
                     tw.removeTimer(rmCh)
                 }
             default:
-                passTime := time.Now().Sub(now)
-                if passTime < tw.tickTime {
-                    time.Sleep(tw.tickTime - passTime)
-                }
-                cur = time.Now()
-                tw.Tick(cur.Sub(now))
-                now = cur
             }
         }
     }()
@@ -87,7 +93,13 @@ func (tw *TimeWheelAsync) Stop() {
 }
 
 func (tw *TimeWheelAsync) add2Slot(timer *ASyncTimer) {
-    index := int(timer.timer.Time / tw.tickTime) + tw.index
+    index := int(timer.timer.Time / tw.tickTime)
+    if index == 0 {
+        index++
+    } else {
+        index += tw.index
+    }
+
     timer.slot = index
     l := tw.slots[index]
     if !timer.rmFlag.IsSet() {

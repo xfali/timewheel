@@ -26,6 +26,7 @@ func TestSyncTimeWheel(t *testing.T) {
         fmt.Printf("timeout %d ms\n", time.Since(data.(time.Time))/time.Millisecond, )
     }
 
+    tw.Add(timewheel.NewTimer(f, 0*time.Second, time.Now()))
     tw.Add(timewheel.NewTimer(f, 1*time.Second, time.Now()))
     cancel, _ := tw.Add(timewheel.NewTimer(f, 2*time.Second, time.Now()))
     cancel()

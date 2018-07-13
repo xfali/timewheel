@@ -54,7 +54,12 @@ func (tw *TimeWheelsync) Stop() {
 }
 
 func (tw *TimeWheelsync) add2Slot(timer *SyncTimer) {
-    index := int(timer.timer.Time/tw.tickTime) + tw.index
+    index := int(timer.timer.Time / tw.tickTime)
+    if index == 0 {
+        index++
+    } else {
+        index += tw.index
+    }
     timer.slot = index
     l := tw.slots[index]
     if !timer.rmFlag.IsSet() {
