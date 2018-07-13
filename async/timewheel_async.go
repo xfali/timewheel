@@ -78,7 +78,7 @@ func (tw *TimeWheelAsync) Start() {
                     time.Sleep(tw.tickTime - passTime)
                 }
                 cur = time.Now()
-                tw.Tick(passTime)
+                tw.Tick(tw.tickTime)
                 now = cur
             }
             select {
