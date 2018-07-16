@@ -14,8 +14,8 @@ import (
     "testing"
     "time"
     "fmt"
-    "timewheel"
-    "timewheel/sync"
+    "github.com/damao/timewheel"
+    "github.com/damao/timewheel/sync"
 )
 
 func TestSyncTimeWheel(t *testing.T) {

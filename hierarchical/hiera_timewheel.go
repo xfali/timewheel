@@ -12,8 +12,8 @@ package hierarchical
 
 import (
     "time"
-    "timewheel"
-    "timewheel/sync"
+    "github.com/damao/timewheel"
+    "github.com/damao/timewheel/sync"
 )
 
 //Hierarchical Timing Wheels

@@ -14,8 +14,8 @@ import (
     "time"
     "container/list"
     "errors"
-    "timewheel/utils"
-    "timewheel"
+    "github.com/damao/timewheel/utils"
+    "github.com/damao/timewheel"
 )
 
 type SyncTimer struct {
