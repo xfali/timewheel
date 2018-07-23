@@ -14,8 +14,8 @@ import (
     "time"
     "container/list"
     "errors"
-    "github.com/xfali/timewheel/utils"
     "github.com/xfali/timewheel"
+    "github.com/xfali/goutils/atomic"
 )
 
 const (
@@ -26,7 +26,7 @@ const (
 type ASyncTimer struct {
     timer *timewheel.Timer
     slot     int
-    rmFlag   utils.AtomicBool
+    rmFlag   atomic.AtomicBool
 }
 
 type TimeWheelAsync struct {

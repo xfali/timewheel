@@ -14,21 +14,21 @@ import (
     "time"
     "container/list"
     "errors"
-    "github.com/xfali/timewheel/utils"
     "github.com/xfali/timewheel"
+    "github.com/xfali/goutils/atomic"
 )
 
 type SyncTimer struct {
     timer  *timewheel.Timer
     slot   int
-    rmFlag utils.AtomicBool
+    rmFlag atomic.AtomicBool
 }
 
 type TimeWheelsync struct {
     slots    [] *list.List
     tickTime time.Duration
     index    int
-    stop     utils.AtomicBool
+    stop     atomic.AtomicBool
     lastTime time.Duration
 }
 
