@@ -14,145 +14,122 @@ import (
     "time"
     "github.com/xfali/timewheel"
     "github.com/xfali/timewheel/sync"
+    "github.com/xfali/goutils/atomic"
+    "fmt"
+    "errors"
 )
 
 //Hierarchical Timing Wheels
 type HieraTimeWheel struct {
-    timeWheels [4] timewheel.TimeWheel
-    tickTime   time.Duration
-    stop       chan bool
+    timeWheels [] timewheel.TimeWheel
+    hieraTimes   []time.Duration
+    stop     atomic.AtomicBool
 }
 
-func NewHieraTimeWheel(tickTime time.Duration, duration time.Duration) *HieraTimeWheel {
+//创建一个通用的时间轮，分层数据格式为：时间由大到小排列，如hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 20*time.Millisecond }
+func NewHieraTimeWheel(duration time.Duration, hieraTimes []time.Duration) *HieraTimeWheel {
+    if len(hieraTimes) < 2 {
+        return nil
+    }
+
     tw := &HieraTimeWheel{}
+    deep := len(hieraTimes)
+    tw.timeWheels = make([]timewheel.TimeWheel, deep)
+
     secondTick := false
-    hour := duration / time.Hour
-    if hour > 0 {
+
+    time := duration / hieraTimes[0]
+    if time > 0 {
         secondTick = true
-        wheel := sync.New(time.Hour, hour*time.Hour)
+        wheel := sync.New(hieraTimes[0], time*hieraTimes[0])
         tw.timeWheels[0] = wheel
     }
 
-    minute := (duration % time.Hour) / time.Minute
-    if hour > 0 {
-        wheel := sync.New(time.Minute, time.Hour)
-        wheel.Add(func() {
-            tw.timeWheels[0].Tick(time.Hour)
-        }, time.Hour, true)
-        tw.timeWheels[1] = wheel
-    } else {
-        if minute > 0 {
-            secondTick = true
-            wheel := sync.New(time.Minute, minute*time.Minute)
-            tw.timeWheels[1] = wheel
+    for j:=1; j<deep; j++ {
+        i := j
+        time = (duration % hieraTimes[i-1]) / hieraTimes[i]
+        if secondTick {
+            wheel := sync.New(hieraTimes[i], hieraTimes[i-1])
+            wheel.Add(func() {
+                tw.timeWheels[i-1].Tick(hieraTimes[i-1])
+            }, hieraTimes[i-1], true)
+            tw.timeWheels[i] = wheel
+        } else {
+            if time > 0 {
+                secondTick = true
+                wheel := sync.New(hieraTimes[i], time*hieraTimes[i])
+                tw.timeWheels[i] = wheel
+            }
         }
     }
 
-    second := (duration % time.Minute) / time.Second
-    if minute > 0 {
-        wheel := sync.New(time.Second, time.Minute)
-        wheel.Add(func() {
-            tw.timeWheels[1].Tick(time.Minute)
-        }, time.Minute, true)
-        tw.timeWheels[2] = wheel
-    } else {
-        if second > 0 {
-            secondTick = true
-            wheel := sync.New(time.Second, second*time.Second)
-            tw.timeWheels[2] = wheel
-        }
-    }
-
-    millisecond := (duration % time.Second) / time.Millisecond
-    if secondTick {
-        wheel := sync.New(tickTime, time.Second)
-        wheel.Add(func() {
-            tw.timeWheels[2].Tick(time.Second)
-        }, time.Second, true)
-        tw.timeWheels[3] = wheel
-    } else {
-        if millisecond > 0 {
-            wheel := sync.New(tickTime, millisecond*time.Millisecond)
-            tw.timeWheels[3] = wheel
-        }
-    }
-    tw.tickTime = tickTime
+    tw.hieraTimes = hieraTimes
+    tw.stop = atomic.AtomicBool(1)
     return tw
 }
 
 func (htw *HieraTimeWheel) Start() {
-    go func() {
-        now := time.Now()
-        cur := now
-        for {
-            select {
-            case <-htw.stop:
-                return
-            default:
-                passTime := time.Since(now)
-                if passTime < htw.tickTime {
-                    time.Sleep(htw.tickTime - passTime)
-                }
-                cur = time.Now()
-                htw.Tick(htw.tickTime)
-                now = cur
-            }
-        }
-    }()
+    htw.stop = 0
 }
 
 func (htw *HieraTimeWheel) Stop() {
-    close(htw.stop)
+    htw.stop.Set()
 }
 
 func (htw *HieraTimeWheel) Tick(duration time.Duration) {
-    htw.timeWheels[3].Tick(duration)
+    if htw.stop.IsSet() {
+        return
+    }
+    //fmt.Println(duration / time.Millisecond)
+    htw.timeWheels[len(htw.timeWheels)-1].Tick(duration)
 }
 
 func (htw *HieraTimeWheel) Add(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.CancelFunc, error) {
-    return htw.addHour(callback, expire, repeat)
-}
-
-func (htw *HieraTimeWheel)addHour(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.CancelFunc, error) {
-    hour := expire / time.Hour
-    if hour > 0 {
-        return htw.timeWheels[0].Add(func() {
-            htw.addMinute(callback, expire, false)
-        }, hour*time.Hour, repeat)
-    } else {
-        return htw.addMinute(callback, expire, repeat)
+    if expire < htw.hieraTimes[len(htw.hieraTimes)-1] {
+        return nil, errors.New("expire time is too small")
     }
+
+    return htw.addTime(0, callback, expire, repeat)
 }
 
-func (htw *HieraTimeWheel)addMinute(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.CancelFunc, error) {
-    minute := expire / time.Minute
-    if minute > 0 {
-        return htw.timeWheels[1].Add(func() {
-            htw.addSecond(callback, expire, false)
-        }, minute*time.Minute, repeat)
+func (htw *HieraTimeWheel)addTime(deep int, callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.CancelFunc, error) {
+    var nextTime time.Duration
+    if deep == 0 {
+        nextTime = expire / htw.hieraTimes[deep]
     } else {
-        return htw.addSecond(callback, expire, repeat)
+        nextTime = expire % htw.hieraTimes[deep-1] / htw.hieraTimes[deep]
     }
-}
 
-func (htw *HieraTimeWheel)addSecond(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.CancelFunc, error) {
-    second := expire / time.Second
-    if second > 0 {
-        return htw.timeWheels[0].Add(func() {
-            htw.addMilliSecond(callback, expire, false)
-        }, second*time.Second, repeat)
+    if deep == len(htw.hieraTimes)-1 {
+        fmt.Println("finally: ", deep)
+        if nextTime > 0 {
+            now := time.Now()
+            return htw.timeWheels[deep].Add(func() {
+                callback()
+                if repeat {
+                    fmt.Println("repeat in callback", expire, " time ", nextTime, " deep ", deep, " time ", time.Since(now))
+                    htw.addTime(0, callback, expire, repeat)
+                }
+            }, nextTime*htw.hieraTimes[deep], false)
+        } else {
+            callback()
+            if repeat {
+                fmt.Println("repeat in 0")
+                htw.addTime(0, callback, expire, repeat)
+            }
+            return undo, nil
+        }
     } else {
-        return htw.addMilliSecond(callback, expire, repeat)
-    }
-}
-
-func (htw *HieraTimeWheel)addMilliSecond(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.CancelFunc, error) {
-    millisecond := expire / time.Millisecond
-    if millisecond > 0 {
-        return htw.timeWheels[0].Add(callback, millisecond*time.Millisecond, repeat)
-    } else {
-        callback()
-        return undo, nil
+        if nextTime > 0 {
+            fmt.Println("addTime: ", deep)
+            now := time.Now()
+            return htw.timeWheels[deep].Add(func() {
+                fmt.Println("addTime ", time.Since(now))
+                htw.addTime(deep + 1, callback, expire, repeat)
+            }, nextTime*htw.hieraTimes[deep], false)
+        } else {
+            return htw.addTime(deep + 1, callback, expire, repeat)
+        }
     }
 }
 

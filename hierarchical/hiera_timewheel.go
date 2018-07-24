@@ -108,6 +108,7 @@ func (htw *SyncHieraTimeWheel) Add(callback timewheel.OnTimeout, expire time.Dur
 func (htw *SyncHieraTimeWheel)addHour(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.CancelFunc, error) {
     hour := expire / time.Hour
     if hour > 0 {
+        fmt.Println("addHour")
         return htw.timeWheels[0].Add(func() {
             htw.addMinute(callback, expire, false)
         }, hour*time.Hour, repeat)
@@ -117,8 +118,9 @@ func (htw *SyncHieraTimeWheel)addHour(callback timewheel.OnTimeout, expire time.
 }
 
 func (htw *SyncHieraTimeWheel)addMinute(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.CancelFunc, error) {
-    minute := expire / time.Minute
+    minute := expire % time.Hour / time.Minute
     if minute > 0 {
+        fmt.Println("addMinute")
         return htw.timeWheels[1].Add(func() {
             htw.addSecond(callback, expire, false)
         }, minute*time.Minute, repeat)
@@ -128,8 +130,9 @@ func (htw *SyncHieraTimeWheel)addMinute(callback timewheel.OnTimeout, expire tim
 }
 
 func (htw *SyncHieraTimeWheel)addSecond(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.CancelFunc, error) {
-    second := expire / time.Second
+    second := expire % time.Minute / time.Second
     if second > 0 {
+        fmt.Println("addSecond")
         return htw.timeWheels[2].Add(func() {
             htw.addMilliSecond(callback, expire, false)
         }, second*time.Second, repeat)
@@ -141,8 +144,9 @@ func (htw *SyncHieraTimeWheel)addSecond(callback timewheel.OnTimeout, expire tim
 func undo() {}
 
 func (htw *SyncHieraTimeWheel)addMilliSecond(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.CancelFunc, error) {
-    millisecond := expire / time.Millisecond
+    millisecond := expire % time.Second / time.Millisecond
     if millisecond > 0 {
+        fmt.Println("addMilliSecond")
         return htw.timeWheels[3].Add(callback, millisecond*time.Millisecond, repeat)
     } else {
         callback()
