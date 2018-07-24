@@ -36,9 +36,9 @@ func NewHieraTimeWheel(tickTime time.Duration, duration time.Duration) *HieraTim
    minute := (duration % time.Hour) / time.Minute
    if hour > 0 {
        wheel := sync.New(time.Minute, time.Hour)
-       wheel.Add(timewheel.NewTimer(func(data interface{}){
+       wheel.Add(func(){
             tw.timeWheels[0].Tick(time.Hour)
-       }, -1, nil))
+       }, time.Hour, true)
        tw.timeWheels[1] = wheel
    } else {
        if minute > 0 {
@@ -51,9 +51,9 @@ func NewHieraTimeWheel(tickTime time.Duration, duration time.Duration) *HieraTim
    second := (duration % time.Minute) / time.Second
    if minute > 0 {
        wheel := sync.New(time.Second, time.Minute)
-       wheel.Add(timewheel.NewTimer(func(data interface{}){
+       wheel.Add(func(){
            tw.timeWheels[1].Tick(time.Minute)
-       }, -1, nil))
+       }, time.Minute, true)
        tw.timeWheels[2] = wheel
    } else {
        if second > 0 {
@@ -66,9 +66,9 @@ func NewHieraTimeWheel(tickTime time.Duration, duration time.Duration) *HieraTim
    millisecond := (duration % time.Second) / time.Millisecond
    if secondTick {
        wheel := sync.New(tickTime, time.Second)
-       wheel.Add(timewheel.NewTimer(func(data interface{}){
+       wheel.Add(func(){
            tw.timeWheels[2].Tick(time.Second)
-       }, -1, nil))
+       }, time.Second, true)
        tw.timeWheels[3] = wheel
    } else {
        if millisecond > 0 {
@@ -110,19 +110,7 @@ func (htw *HieraTimeWheel) Tick(duration time.Duration) {
 }
 
 func (htw *HieraTimeWheel) Add(timer *timewheel.Timer) (timewheel.CancelFunc, error)  {
-   if expireTime > time.Hour {
-       //return htw.timeWheels[0].Add(func(i interface{}) {
-       //    htw.timeWheels[1].Add(func(i interface{}) {
-       //        htw.timeWheels[2].Add(func(i interface{}) {
-       //            htw.timeWheels[3].Add(callback, expireTime % time.Second, data)
-       //        }, expireTime / time.Second, data)
-       //    }, expireTime / time.Minute, data)
-       //}, expireTime / time.Hour, data)
-   }
 
    return nil, nil
 }
 
-func (htw *HieraTimeWheel) Remove(timer *Timer) {
-
-}

@@ -14,18 +14,15 @@ import (
     "time"
 )
 
-type OnTimeout func(interface{}) ()
-
-type Timer struct {
-    //到期时回调
-    Callback OnTimeout
-    //过期时间，如果为0，则在时间轮一个轮转时间后回调，如果为负数，则在轮转时间扣除负值后回调（粒度为1 tick）
-    Time     time.Duration
-    //回调时回传的数据
-    Data     interface{}
-}
+type OnTimeout func() ()
 
 type CancelFunc func()
+
+type Timer struct {
+    Callback OnTimeout
+    Expire time.Duration
+    Repeat bool
+}
 
 type TimeWheel interface {
     //开启时间轮
@@ -37,16 +34,11 @@ type TimeWheel interface {
     //每一个时钟跳动的时间片操作
     Tick(time.Duration)
 
-    //*Timer:增加一个计时器
-    //CancelFunc 取消方法
-    //正常为nil，其他返回具体错误
-    Add(*Timer) (CancelFunc, error)
+    //参数：callback: 超时回调
+    //参数：expire: 超时时间
+    //参数：repeat: 是否重复
+    //返回：CancelFunc: 取消方法
+    //返回：err: 正常为nil，其他返回具体错误
+    Add(callback OnTimeout, expire time.Duration, repeat bool) (CancelFunc, error)
 }
 
-func NewTimer(Callback OnTimeout, Time time.Duration, Data interface{}) (*Timer) {
-    return &Timer{
-        Callback: Callback,
-        Time:     Time,
-        Data:     Data,
-    }
-}
