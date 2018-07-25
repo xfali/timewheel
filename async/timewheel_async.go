@@ -24,8 +24,10 @@ const (
 )
 
 type ASyncTimer struct {
-    timewheel.Timer
+    tw *TimeWheelAsync
+    timewheel.TimerData
     slot     int
+    initSlot int
     rmFlag   atomic.AtomicBool
 }
 
@@ -114,6 +116,7 @@ func (tw *TimeWheelAsync) add2Slot(timer *ASyncTimer) {
         }
     }
 
+    timer.initSlot = tw.index
     timer.slot = index
     l := tw.slots[index]
     if !timer.rmFlag.IsSet() {
@@ -146,22 +149,34 @@ func (tw *TimeWheelAsync) Tick(duration time.Duration) {
     }
 }
 
-func (tw *TimeWheelAsync) Add(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.CancelFunc, error)  {
+func (tw *TimeWheelAsync) Add(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.Timer, error)  {
     if expire > tw.tickTime * time.Duration(len(tw.slots)) {
         return nil, errors.New("expireTime out of range")
     }
     aTimer := &ASyncTimer{
-        Timer: timewheel.Timer{callback, expire, repeat},
+        TimerData: timewheel.TimerData{callback, expire, repeat},
+        tw : tw,
         rmFlag : 0,
     }
     tw.addChan <- aTimer
-    return func(){ tw.Cancel(aTimer) }, nil
+    return aTimer, nil
 }
 
 func (atw *TimeWheelAsync) Cancel(atimer *ASyncTimer)  {
     atimer.rmFlag.Set()
     atw.rmChan <- atimer
 }
+
+func (aTimer *ASyncTimer) Cancel() {
+    aTimer.rmFlag.Set()
+    aTimer.tw.rmChan <- aTimer
+}
+
+func (aTimer *ASyncTimer) PastTime() (time.Duration) {
+    //NOTICE:异步时间轮的Tick与Add在同一个select，所以需要+1
+    return time.Duration(aTimer.tw.index - aTimer.initSlot + 1) * aTimer.tw.tickTime
+}
+
 
 //func (tw *TimeWheelAsync) Remove(timer timewheel.TimerCancel) {
 //   timer.Cancel(tw)

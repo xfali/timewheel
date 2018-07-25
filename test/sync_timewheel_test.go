@@ -29,10 +29,10 @@ func TestSyncTimeWheel(t *testing.T) {
     tw.Add(func() {
         fmt.Printf("timeout %d ms test2\n", time.Since(now)/time.Millisecond)
     }, 1*time.Second, false)
-    cancel, _ := tw.Add(func() {
+    timer, _ := tw.Add(func() {
         fmt.Printf("timeout %d ms test3\n", time.Since(now)/time.Millisecond)
     }, 2*time.Second, false)
-    cancel()
+    timer.Cancel()
     tw.Add(func() {
         fmt.Printf("timeout %d ms test4\n", time.Since(now)/time.Millisecond)
     }, 3*time.Second, false)
@@ -150,12 +150,12 @@ func TestSyncTimeWheel4(t *testing.T) {
 
     now := time.Now()
 
-    cancel, _ := tw.Add(func() {
+    timer, _ := tw.Add(func() {
         fmt.Printf("timeout %d ms Should be cancel\n", time.Since(now)/time.Millisecond)
     }, 2*time.Second, false)
     tw.Add(func() {
         fmt.Printf("timeout %d ms test0\n", time.Since(now)/time.Millisecond)
-        cancel()
+        timer.Cancel()
     }, 1*time.Second, false)
 
     cur := time.Now()
@@ -200,6 +200,35 @@ func TestSyncTimeWheel5(t *testing.T) {
 
         }
         time.Sleep(10*time.Millisecond)
+        tick := time.Now()
+        tw.Tick(tick.Sub(cur))
+        cur = tick
+    }
+}
+
+func TestSyncTimeWheel6(t *testing.T) {
+    tw := sync.New(100*time.Millisecond, 8*time.Second)
+    tw.Start()
+
+    now := time.Now()
+
+    timer, _ := tw.Add(func() {
+        fmt.Printf("timeout %d ms test0\n", time.Since(now)/time.Millisecond)
+    }, 3*time.Second, false)
+
+    cur := time.Now()
+    timeout := time.After(10*time.Second)
+    for {
+        select {
+        case <- timeout:
+            fmt.Println("close")
+            tw.Stop()
+            time.Sleep(time.Second)
+            return
+        default:
+            fmt.Println(timer.PastTime())
+        }
+        time.Sleep(100*time.Millisecond)
         tick := time.Now()
         tw.Tick(tick.Sub(cur))
         cur = tick

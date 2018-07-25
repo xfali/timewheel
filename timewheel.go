@@ -18,10 +18,15 @@ type OnTimeout func() ()
 
 type CancelFunc func()
 
-type Timer struct {
+type TimerData struct {
     Callback OnTimeout
     Expire time.Duration
     Repeat bool
+}
+
+type Timer interface {
+    Cancel()
+    PastTime()(time.Duration)
 }
 
 type TimeWheel interface {
@@ -39,6 +44,6 @@ type TimeWheel interface {
     //参数：repeat: 是否重复
     //返回：CancelFunc: 取消方法
     //返回：err: 正常为nil，其他返回具体错误
-    Add(callback OnTimeout, expire time.Duration, repeat bool) (CancelFunc, error)
+    Add(callback OnTimeout, expire time.Duration, repeat bool) (Timer, error)
 }
 

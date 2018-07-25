@@ -101,11 +101,11 @@ func (htw *SyncHieraTimeWheel) Tick(duration time.Duration) {
     htw.timeWheels[3].Tick(duration)
 }
 
-func (htw *SyncHieraTimeWheel) Add(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.CancelFunc, error) {
+func (htw *SyncHieraTimeWheel) Add(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.Timer, error) {
     return htw.addHour(callback, expire, repeat)
 }
 
-func (htw *SyncHieraTimeWheel)addHour(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.CancelFunc, error) {
+func (htw *SyncHieraTimeWheel)addHour(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.Timer, error) {
     hour := expire / time.Hour
     if hour > 0 {
         fmt.Println("addHour")
@@ -117,7 +117,7 @@ func (htw *SyncHieraTimeWheel)addHour(callback timewheel.OnTimeout, expire time.
     }
 }
 
-func (htw *SyncHieraTimeWheel)addMinute(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.CancelFunc, error) {
+func (htw *SyncHieraTimeWheel)addMinute(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.Timer, error) {
     minute := expire % time.Hour / time.Minute
     if minute > 0 {
         fmt.Println("addMinute")
@@ -129,7 +129,7 @@ func (htw *SyncHieraTimeWheel)addMinute(callback timewheel.OnTimeout, expire tim
     }
 }
 
-func (htw *SyncHieraTimeWheel)addSecond(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.CancelFunc, error) {
+func (htw *SyncHieraTimeWheel)addSecond(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.Timer, error) {
     second := expire % time.Minute / time.Second
     if second > 0 {
         fmt.Println("addSecond")
@@ -141,9 +141,15 @@ func (htw *SyncHieraTimeWheel)addSecond(callback timewheel.OnTimeout, expire tim
     }
 }
 
-func undo() {}
+type undoTimer bool
+func (undo *undoTimer) Cancel() {
+}
+func (undo *undoTimer) PastTime() (time.Duration) {
+    return 0
+}
+var undo = new(undoTimer)
 
-func (htw *SyncHieraTimeWheel)addMilliSecond(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.CancelFunc, error) {
+func (htw *SyncHieraTimeWheel)addMilliSecond(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.Timer, error) {
     millisecond := expire % time.Second / time.Millisecond
     if millisecond > 0 {
         fmt.Println("addMilliSecond")

@@ -19,8 +19,10 @@ import (
 )
 
 type SyncTimer struct {
-    timewheel.Timer
+    timewheel.TimerData
+    tw *TimeWheelsync
     slot   int
+    initSlot int
     rmFlag atomic.AtomicBool
 }
 
@@ -74,6 +76,7 @@ func (tw *TimeWheelsync) add2Slot(timer *SyncTimer) {
         }
     }
 
+    timer.initSlot = tw.index
     timer.slot = index
     l := tw.slots[index]
     if !timer.rmFlag.IsSet() {
@@ -114,20 +117,25 @@ func (tw *TimeWheelsync) Tick(duration time.Duration) {
     }
 }
 
-func (tw *TimeWheelsync) Add(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.CancelFunc, error) {
+func (tw *TimeWheelsync) Add(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.Timer, error) {
     if expire > tw.tickTime*time.Duration(len(tw.slots)) {
         return nil, errors.New("expireTime out of range")
     }
 
     aTimer := &SyncTimer{
-        Timer: timewheel.Timer{callback, expire, repeat},
+        TimerData: timewheel.TimerData{callback, expire, repeat},
         rmFlag : 0,
+        tw : tw,
     }
     tw.add2Slot(aTimer)
 
-    return func() { tw.Cancel(aTimer) }, nil
+    return aTimer, nil
 }
 
-func (atw *TimeWheelsync) Cancel(atimer *SyncTimer) {
-    atw.removeTimer(atimer)
+func (aTimer *SyncTimer) Cancel() {
+    aTimer.tw.removeTimer(aTimer)
+}
+
+func (aTimer *SyncTimer) PastTime() (time.Duration) {
+    return time.Duration(aTimer.tw.index - aTimer.initSlot) * aTimer.tw.tickTime
 }

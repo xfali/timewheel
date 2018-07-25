@@ -29,10 +29,10 @@ func TestSyncHieraTimeWheel1(t *testing.T) {
     tw.Add(func() {
         fmt.Printf("timeout %d ms test2\n", time.Since(now)/time.Millisecond)
     }, 1*time.Second, false)
-    cancel, _ := tw.Add(func() {
+    timer, _ := tw.Add(func() {
         fmt.Printf("timeout %d ms test3\n", time.Since(now)/time.Millisecond)
     }, 2*time.Second, false)
-    cancel()
+    timer.Cancel()
     tw.Add(func() {
         fmt.Printf("timeout %d ms test4\n", time.Since(now)/time.Millisecond)
     }, 3*time.Second, false)

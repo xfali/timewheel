@@ -84,7 +84,7 @@ func (htw *HieraTimeWheel) Tick(duration time.Duration) {
     htw.timeWheels[len(htw.timeWheels)-1].Tick(duration)
 }
 
-func (htw *HieraTimeWheel) Add(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.CancelFunc, error) {
+func (htw *HieraTimeWheel) Add(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.Timer, error) {
     if expire < htw.hieraTimes[len(htw.hieraTimes)-1] {
         return nil, errors.New("expire time is too small")
     }
@@ -92,7 +92,7 @@ func (htw *HieraTimeWheel) Add(callback timewheel.OnTimeout, expire time.Duratio
     return htw.addTime(0, callback, expire, repeat)
 }
 
-func (htw *HieraTimeWheel)addTime(deep int, callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.CancelFunc, error) {
+func (htw *HieraTimeWheel)addTime(deep int, callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.Timer, error) {
     var nextTime time.Duration
     if deep == 0 {
         nextTime = expire / htw.hieraTimes[deep]
