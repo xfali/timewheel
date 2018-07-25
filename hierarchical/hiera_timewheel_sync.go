@@ -20,20 +20,21 @@ import (
 )
 
 //Hierarchical Timing Wheels
-type HieraTimeWheel struct {
+type SyncHieraTimeWheel struct {
     timeWheels [] timewheel.TimeWheel
     hieraTimes   []time.Duration
     stop     atomic.AtomicBool
 }
 
 //创建一个通用的时间轮，分层数据格式为：时间由大到小排列，如hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 20*time.Millisecond }
-func NewHieraTimeWheel(duration time.Duration, hieraTimes []time.Duration) *HieraTimeWheel {
+func NewSyncHieraTimeWheel(duration time.Duration, hieraTimes []time.Duration) timewheel.TimeWheel {
     if len(hieraTimes) < 2 {
         return nil
     }
 
-    tw := &HieraTimeWheel{}
+    tw := &SyncHieraTimeWheel{}
     deep := len(hieraTimes)
+
     tw.timeWheels = make([]timewheel.TimeWheel, deep)
 
     secondTick := false
@@ -68,15 +69,15 @@ func NewHieraTimeWheel(duration time.Duration, hieraTimes []time.Duration) *Hier
     return tw
 }
 
-func (htw *HieraTimeWheel) Start() {
+func (htw *SyncHieraTimeWheel) Start() {
     htw.stop = 0
 }
 
-func (htw *HieraTimeWheel) Stop() {
+func (htw *SyncHieraTimeWheel) Stop() {
     htw.stop.Set()
 }
 
-func (htw *HieraTimeWheel) Tick(duration time.Duration) {
+func (htw *SyncHieraTimeWheel) Tick(duration time.Duration) {
     if htw.stop.IsSet() {
         return
     }
@@ -84,15 +85,54 @@ func (htw *HieraTimeWheel) Tick(duration time.Duration) {
     htw.timeWheels[len(htw.timeWheels)-1].Tick(duration)
 }
 
-func (htw *HieraTimeWheel) Add(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.Timer, error) {
+func (htw *SyncHieraTimeWheel) Add(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.Timer, error) {
     if expire < htw.hieraTimes[len(htw.hieraTimes)-1] {
         return nil, errors.New("expire time is too small")
     }
 
-    return htw.addTime(0, callback, expire, repeat)
+    absoluteTime := htw.absoluteTime(expire)
+    if repeat {
+        return htw.addTime(0, func() {
+            callback()
+            htw.Add(callback, expire, repeat)
+        }, absoluteTime, repeat)
+    } else {
+        return htw.addTime(0, callback, absoluteTime, repeat)
+    }
 }
 
-func (htw *HieraTimeWheel)addTime(deep int, callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.Timer, error) {
+func (htw *SyncHieraTimeWheel) RollTime() (time.Duration) {
+    return 0
+}
+
+func (htw *SyncHieraTimeWheel) parse(expire time.Duration) (int) {
+    deep := 0
+    nextTime := expire / htw.hieraTimes[deep]
+    if nextTime > 0 {
+        return deep
+    }
+    deep++
+    for deep < len(htw.hieraTimes) {
+        nextTime = expire % htw.hieraTimes[deep-1] / htw.hieraTimes[deep]
+        if nextTime > 0 {
+            return deep
+        }
+        deep++
+    }
+    return deep
+}
+
+func (htw *SyncHieraTimeWheel) absoluteTime(expire time.Duration) (time.Duration) {
+    deep := htw.parse(expire)
+    deep++
+    for deep < len(htw.hieraTimes) {
+        expire += htw.timeWheels[deep].RollTime()
+        deep++
+    }
+    return expire
+}
+
+func (htw *SyncHieraTimeWheel)addTime(deep int, callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.Timer, error) {
     var nextTime time.Duration
     if deep == 0 {
         nextTime = expire / htw.hieraTimes[deep]
@@ -103,21 +143,12 @@ func (htw *HieraTimeWheel)addTime(deep int, callback timewheel.OnTimeout, expire
     if deep == len(htw.hieraTimes)-1 {
         fmt.Println("finally: ", deep)
         if nextTime > 0 {
-            now := time.Now()
             return htw.timeWheels[deep].Add(func() {
                 callback()
-                if repeat {
-                    fmt.Println("repeat in callback", expire, " time ", nextTime, " deep ", deep, " time ", time.Since(now))
-                    htw.addTime(0, callback, expire, repeat)
-                }
             }, nextTime*htw.hieraTimes[deep], false)
         } else {
             callback()
-            if repeat {
-                fmt.Println("repeat in 0")
-                htw.addTime(0, callback, expire, repeat)
-            }
-            return undo, nil
+            return nil, nil
         }
     } else {
         if nextTime > 0 {

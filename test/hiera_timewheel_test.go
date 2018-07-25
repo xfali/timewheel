@@ -18,7 +18,8 @@ import (
 )
 
 func TestSyncHieraTimeWheel1(t *testing.T) {
-    tw := hierarchical.NewSyncHieraTimeWheel(100*time.Millisecond, 2*time.Hour)
+    hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 100*time.Millisecond }
+    tw := hierarchical.NewHieraTimeWheel(2*time.Hour, hieraTimes)
     tw.Start()
 
     now := time.Now()

@@ -19,7 +19,7 @@ import (
 
 func TestHieraTimeWheel1(t *testing.T) {
     hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 100*time.Millisecond }
-    tw := hierarchical.NewHieraTimeWheel(2*time.Hour, hieraTimes)
+    tw := hierarchical.NewSyncHieraTimeWheel(2*time.Hour, hieraTimes)
     tw.Start()
 
     now := time.Now()
@@ -68,6 +68,36 @@ func TestHieraTimeWheel1(t *testing.T) {
     tw.Add(func() {
         fmt.Printf("repeat in 5.5s timeout %d ms test12\n", time.Since(now)/time.Millisecond)
     }, 5*time.Second + 500*time.Millisecond, true)
+
+    tw.Add(func() {
+        fmt.Printf("repeat in 1.5s timeout %d ms test13\n", time.Since(now)/time.Millisecond)
+    }, 1*time.Second + 500*time.Millisecond , true)
+
+    cur := time.Now()
+    timeout := time.After(2*time.Minute)
+    for {
+        select {
+        case <- timeout:
+            fmt.Println("close")
+            tw.Stop()
+            time.Sleep(time.Second)
+            return
+        default:
+
+        }
+        time.Sleep(10*time.Millisecond)
+        tick := time.Now()
+        tw.Tick(tick.Sub(cur))
+        cur = tick
+    }
+}
+
+func TestHieraTimeWheel2(t *testing.T) {
+    hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 100*time.Millisecond }
+    tw := hierarchical.NewSyncHieraTimeWheel(2*time.Hour, hieraTimes)
+    tw.Start()
+
+    now := time.Now()
 
     tw.Add(func() {
         fmt.Printf("repeat in 1.5s timeout %d ms test13\n", time.Since(now)/time.Millisecond)

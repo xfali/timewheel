@@ -167,6 +167,10 @@ func (atw *TimeWheelAsync) Cancel(atimer *ASyncTimer)  {
     atw.rmChan <- atimer
 }
 
+func (atw *TimeWheelAsync) RollTime() (time.Duration) {
+    return time.Duration(atw.index) * atw.tickTime
+}
+
 func (aTimer *ASyncTimer) Cancel() {
     aTimer.rmFlag.Set()
     aTimer.tw.rmChan <- aTimer
@@ -176,7 +180,6 @@ func (aTimer *ASyncTimer) PastTime() (time.Duration) {
     //NOTICE:异步时间轮的Tick与Add在同一个select，所以需要+1
     return time.Duration(aTimer.tw.index - aTimer.initSlot + 1) * aTimer.tw.tickTime
 }
-
 
 //func (tw *TimeWheelAsync) Remove(timer timewheel.TimerCancel) {
 //   timer.Cancel(tw)

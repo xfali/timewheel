@@ -132,6 +132,10 @@ func (tw *TimeWheelsync) Add(callback timewheel.OnTimeout, expire time.Duration,
     return aTimer, nil
 }
 
+func (tw *TimeWheelsync) RollTime() (time.Duration) {
+    return time.Duration(tw.index) * tw.tickTime
+}
+
 func (aTimer *SyncTimer) Cancel() {
     aTimer.tw.removeTimer(aTimer)
 }

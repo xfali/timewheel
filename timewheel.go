@@ -45,5 +45,8 @@ type TimeWheel interface {
     //返回：CancelFunc: 取消方法
     //返回：err: 正常为nil，其他返回具体错误
     Add(callback OnTimeout, expire time.Duration, repeat bool) (Timer, error)
+
+    //返回: 时间轮已经滚动过的时间
+    RollTime() (time.Duration)
 }
 
