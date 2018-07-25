@@ -8,27 +8,25 @@
  * Description: 
  */
 
-package hierarchical
+package timewheel
 
 import (
     "time"
-    "github.com/xfali/timewheel"
-    "github.com/xfali/timewheel/sync"
     "github.com/xfali/goutils/atomic"
     "errors"
 )
 
 type HieraTimer struct {
-    timewheel.TimerData
+    TimerData
     tw *HieraTimeWheel
-    timer timewheel.Timer
+    timer Timer
     pastTime time.Duration
     rmFlag   atomic.AtomicBool
 }
 
 //Hierarchical Timing Wheels
 type HieraTimeWheel struct {
-    timeWheels [] timewheel.TimeWheel
+    timeWheels [] TimeWheel
     hieraTimes   []time.Duration
     stop chan bool
     addChan  chan *HieraTimer
@@ -36,14 +34,14 @@ type HieraTimeWheel struct {
 }
 
 //创建一个通用的时间轮，分层数据格式为：时间由大到小排列，如hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 20*time.Millisecond }
-func NewHieraTimeWheel(duration time.Duration, hieraTimes []time.Duration, addMax int, rmMax int) *HieraTimeWheel {
+func NewAsyncHiera(duration time.Duration, hieraTimes []time.Duration, addMax int, rmMax int) *HieraTimeWheel {
     if len(hieraTimes) < 2 {
         return nil
     }
 
     deep := len(hieraTimes)
     tw := &HieraTimeWheel{
-        timeWheels:make([]timewheel.TimeWheel, deep),
+        timeWheels:make([]TimeWheel, deep),
         stop:     make(chan bool),
         addChan:  make(chan *HieraTimer, addMax),
         rmChan:   make(chan *HieraTimer, rmMax),
@@ -54,7 +52,7 @@ func NewHieraTimeWheel(duration time.Duration, hieraTimes []time.Duration, addMa
     time := duration / hieraTimes[0]
     if time > 0 {
         secondTick = true
-        wheel := sync.New(hieraTimes[0], time*hieraTimes[0])
+        wheel := NewSyncOne(hieraTimes[0], time*hieraTimes[0])
         tw.timeWheels[0] = wheel
     }
 
@@ -62,7 +60,7 @@ func NewHieraTimeWheel(duration time.Duration, hieraTimes []time.Duration, addMa
         i := j
         time = (duration % hieraTimes[i-1]) / hieraTimes[i]
         if secondTick {
-            wheel := sync.New(hieraTimes[i], hieraTimes[i-1])
+            wheel := NewSyncOne(hieraTimes[i], hieraTimes[i-1])
             wheel.Add(func() {
                 tw.timeWheels[i-1].Tick(hieraTimes[i-1])
             }, hieraTimes[i-1], true)
@@ -70,7 +68,7 @@ func NewHieraTimeWheel(duration time.Duration, hieraTimes []time.Duration, addMa
         } else {
             if time > 0 {
                 secondTick = true
-                wheel := sync.New(hieraTimes[i], time*hieraTimes[i])
+                wheel := NewSyncOne(hieraTimes[i], time*hieraTimes[i])
                 tw.timeWheels[i] = wheel
             }
         }
@@ -125,13 +123,13 @@ func (htw *HieraTimeWheel) Tick(duration time.Duration) {
     htw.timeWheels[len(htw.timeWheels)-1].Tick(duration)
 }
 
-func (htw *HieraTimeWheel) Add(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.Timer, error) {
+func (htw *HieraTimeWheel) Add(callback OnTimeout, expire time.Duration, repeat bool) (Timer, error) {
     if expire < htw.hieraTimes[len(htw.hieraTimes)-1] {
         return nil, errors.New("expire time is too small")
     }
 
     aTimer := &HieraTimer{
-        TimerData: timewheel.TimerData{callback, expire, repeat},
+        TimerData: TimerData{callback, expire, repeat},
         tw: htw,
         rmFlag : 0,
     }

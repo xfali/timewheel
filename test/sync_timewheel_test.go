@@ -14,11 +14,11 @@ import (
     "testing"
     "time"
     "fmt"
-    "github.com/xfali/timewheel/sync"
+    "github.com/xfali/timewheel"
 )
 
 func TestSyncTimeWheel(t *testing.T) {
-    tw := sync.New(100*time.Millisecond, 8*time.Second)
+    tw := timewheel.NewSyncOne(100*time.Millisecond, 8*time.Second)
     tw.Start()
 
     now := time.Now()
@@ -76,7 +76,7 @@ func TestSyncTimeWheel(t *testing.T) {
 }
 
 func TestSyncTimeWheel2(t *testing.T) {
-    tw := sync.New(100*time.Millisecond, 5*time.Second)
+    tw := timewheel.NewSyncOne(100*time.Millisecond, 5*time.Second)
     tw.Start()
 
     now := time.Now()
@@ -110,7 +110,7 @@ func TestSyncTimeWheel2(t *testing.T) {
 }
 
 func TestSyncTimeWheel3(t *testing.T) {
-    tw := sync.New(100*time.Millisecond, 8*time.Second)
+    tw := timewheel.NewSyncOne(100*time.Millisecond, 8*time.Second)
     tw.Start()
 
     type mydata struct {
@@ -145,7 +145,7 @@ func TestSyncTimeWheel3(t *testing.T) {
 }
 
 func TestSyncTimeWheel4(t *testing.T) {
-    tw := sync.New(100*time.Millisecond, 8*time.Second)
+    tw := timewheel.NewSyncOne(100*time.Millisecond, 8*time.Second)
     tw.Start()
 
     now := time.Now()
@@ -178,7 +178,7 @@ func TestSyncTimeWheel4(t *testing.T) {
 }
 
 func TestSyncTimeWheel5(t *testing.T) {
-    tw := sync.New(100*time.Millisecond, 8*time.Second)
+    tw := timewheel.NewSyncOne(100*time.Millisecond, 8*time.Second)
     tw.Start()
 
     now := time.Now()
@@ -207,7 +207,7 @@ func TestSyncTimeWheel5(t *testing.T) {
 }
 
 func TestSyncTimeWheel6(t *testing.T) {
-    tw := sync.New(100*time.Millisecond, 8*time.Second)
+    tw := timewheel.NewSyncOne(100*time.Millisecond, 8*time.Second)
     tw.Start()
 
     now := time.Now()

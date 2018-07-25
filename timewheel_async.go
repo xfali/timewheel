@@ -8,19 +8,18 @@
  * Description:
  */
 
-package async
+package timewheel
 
 import (
     "time"
     "container/list"
     "errors"
-    "github.com/xfali/timewheel"
     "github.com/xfali/goutils/atomic"
 )
 
 type ASyncTimer struct {
+    TimerData
     tw *TimeWheelAsync
-    timewheel.TimerData
     slot     int
     initSlot int
     rmFlag   atomic.AtomicBool
@@ -35,7 +34,7 @@ type TimeWheelAsync struct {
     index    int
 }
 
-func New(tickTime time.Duration, duration time.Duration, addMax int, rmMax int) *TimeWheelAsync {
+func NewAsyncOne(tickTime time.Duration, duration time.Duration, addMax int, rmMax int) *TimeWheelAsync {
     if tickTime > duration {
         return nil
     }
@@ -144,12 +143,12 @@ func (tw *TimeWheelAsync) Tick(duration time.Duration) {
     }
 }
 
-func (tw *TimeWheelAsync) Add(callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.Timer, error)  {
+func (tw *TimeWheelAsync) Add(callback OnTimeout, expire time.Duration, repeat bool) (Timer, error)  {
     if expire > tw.tickTime * time.Duration(len(tw.slots)) {
         return nil, errors.New("expireTime out of range")
     }
     aTimer := &ASyncTimer{
-        TimerData: timewheel.TimerData{callback, expire, repeat},
+        TimerData: TimerData{callback, expire, repeat},
         tw : tw,
         rmFlag : 0,
     }

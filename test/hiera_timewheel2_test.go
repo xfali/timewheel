@@ -14,12 +14,12 @@ import (
     "testing"
     "fmt"
     "time"
-    "github.com/xfali/timewheel/hierarchical"
+    "github.com/xfali/timewheel"
 )
 
 func TestHieraTimeWheel1(t *testing.T) {
     hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 100*time.Millisecond }
-    tw := hierarchical.NewSyncHieraTimeWheel(2*time.Hour, hieraTimes)
+    tw := timewheel.NewSyncHiera(2*time.Hour, hieraTimes)
     tw.Start()
 
     now := time.Now()
@@ -94,7 +94,7 @@ func TestHieraTimeWheel1(t *testing.T) {
 
 func TestHieraTimeWheel2(t *testing.T) {
     hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 100*time.Millisecond }
-    tw := hierarchical.NewSyncHieraTimeWheel(2*time.Hour, hieraTimes)
+    tw := timewheel.NewSyncHiera(2*time.Hour, hieraTimes)
     tw.Start()
 
     now := time.Now()

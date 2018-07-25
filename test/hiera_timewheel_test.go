@@ -14,12 +14,12 @@ import (
     "testing"
     "fmt"
     "time"
-    "github.com/xfali/timewheel/hierarchical"
+    "github.com/xfali/timewheel"
 )
 
 func TestSyncHieraTimeWheel1(t *testing.T) {
     hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 100*time.Millisecond }
-    tw := hierarchical.NewHieraTimeWheel(2*time.Hour, hieraTimes, 10, 10)
+    tw := timewheel.NewAsyncHiera(2*time.Hour, hieraTimes, 10, 10)
     tw.Start()
 
     now := time.Now()
@@ -68,7 +68,7 @@ func TestSyncHieraTimeWheel1(t *testing.T) {
 
 func TestSyncHieraTimeWheel2(t *testing.T) {
     hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 100*time.Millisecond }
-    tw := hierarchical.NewHieraTimeWheel(2*time.Hour, hieraTimes, 10, 10)
+    tw := timewheel.NewAsyncHiera(2*time.Hour, hieraTimes, 10, 10)
     tw.Start()
 
     now := time.Now()
@@ -92,7 +92,7 @@ func TestSyncHieraTimeWheel2(t *testing.T) {
 
 func TestSyncHieraTimeWheel3(t *testing.T) {
     hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 100*time.Millisecond }
-    tw := hierarchical.NewHieraTimeWheel(2*time.Hour, hieraTimes, 10, 10)
+    tw := timewheel.NewAsyncHiera(2*time.Hour, hieraTimes, 10, 10)
     tw.Start()
 
     now := time.Now()
@@ -120,7 +120,7 @@ func TestSyncHieraTimeWheel3(t *testing.T) {
 
 func TestSyncHieraTimeWheel4(t *testing.T) {
     hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 100*time.Millisecond }
-    tw := hierarchical.NewHieraTimeWheel(2*time.Hour, hieraTimes, 10, 10)
+    tw := timewheel.NewAsyncHiera(2*time.Hour, hieraTimes, 10, 10)
     tw.Start()
 
     now := time.Now()
@@ -142,7 +142,7 @@ func TestSyncHieraTimeWheel4(t *testing.T) {
 
 func TestSyncHieraTimeWheel5(t *testing.T) {
     hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 100*time.Millisecond }
-    tw := hierarchical.NewHieraTimeWheel(2*time.Hour, hieraTimes, 10, 10)
+    tw := timewheel.NewAsyncHiera(2*time.Hour, hieraTimes, 10, 10)
     tw.Start()
 
     now := time.Now()
@@ -167,7 +167,7 @@ func TestSyncHieraTimeWheel5(t *testing.T) {
 
 func TestAsyncTimeWheel6(t *testing.T) {
     hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 100*time.Millisecond }
-    tw := hierarchical.NewHieraTimeWheel(2*time.Hour, hieraTimes, 10, 10)
+    tw := timewheel.NewAsyncHiera(2*time.Hour, hieraTimes, 10, 10)
     tw.Start()
 
     type mydata struct {
@@ -195,7 +195,7 @@ func TestAsyncTimeWheel6(t *testing.T) {
 
 func TestAsyncTimeWheel7(t *testing.T) {
     hieraTimes := []time.Duration{ time.Minute, 100*time.Millisecond }
-    tw := hierarchical.NewHieraTimeWheel(2*time.Hour, hieraTimes, 10, 10)
+    tw := timewheel.NewAsyncHiera(2*time.Hour, hieraTimes, 10, 10)
     tw.Start()
 
     type mydata struct {
