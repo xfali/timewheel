@@ -19,7 +19,7 @@ import (
 
 func TestSyncHieraTimeWheel1(t *testing.T) {
     hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 100*time.Millisecond }
-    tw := hierarchical.NewHieraTimeWheel(2*time.Hour, hieraTimes)
+    tw := hierarchical.NewHieraTimeWheel(2*time.Hour, hieraTimes, 10, 10)
     tw.Start()
 
     now := time.Now()
@@ -56,21 +56,139 @@ func TestSyncHieraTimeWheel1(t *testing.T) {
         fmt.Printf("timeout %d ms test9\n", time.Since(now)/time.Millisecond)
     }, -2*time.Second, false)
 
-    cur := time.Now()
-    timeout := time.After(10*time.Second)
     for {
         select {
-        case <- timeout:
-            fmt.Println("close")
+        case <-time.After(10*time.Second):
             tw.Stop()
             time.Sleep(time.Second)
             return
-        default:
-
         }
-        time.Sleep(10*time.Millisecond)
-        tick := time.Now()
-        tw.Tick(tick.Sub(cur))
-        cur = tick
     }
+}
+
+func TestSyncHieraTimeWheel2(t *testing.T) {
+    hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 100*time.Millisecond }
+    tw := hierarchical.NewHieraTimeWheel(2*time.Hour, hieraTimes, 10, 10)
+    tw.Start()
+
+    now := time.Now()
+
+
+    timer, _ := tw.Add(func() {
+        fmt.Printf("timeout %d ms test3\n", time.Since(now)/time.Millisecond)
+    }, 2*time.Second, false)
+    timer.Cancel()
+
+
+    for {
+        select {
+        case <-time.After(10*time.Second):
+            tw.Stop()
+            time.Sleep(time.Second)
+            return
+        }
+    }
+}
+
+func TestSyncHieraTimeWheel3(t *testing.T) {
+    hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 100*time.Millisecond }
+    tw := hierarchical.NewHieraTimeWheel(2*time.Hour, hieraTimes, 10, 10)
+    tw.Start()
+
+    now := time.Now()
+
+
+    timer, _ := tw.Add(func() {
+        fmt.Printf("timeout %d ms test1\n", time.Since(now)/time.Millisecond)
+    }, 2*time.Second, false)
+
+    tw.Add(func() {
+        fmt.Printf("timeout: %d test0 cancel test1\n", time.Since(now)/time.Millisecond)
+        timer.Cancel()
+    }, time.Second, false)
+
+
+    for {
+        select {
+        case <-time.After(5*time.Second):
+            tw.Stop()
+            time.Sleep(time.Second)
+            return
+        }
+    }
+}
+
+func TestSyncHieraTimeWheel4(t *testing.T) {
+    hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 100*time.Millisecond }
+    tw := hierarchical.NewHieraTimeWheel(2*time.Hour, hieraTimes, 10, 10)
+    tw.Start()
+
+    now := time.Now()
+
+    tw.Add(func() {
+        fmt.Printf("timeout: %d \n", time.Since(now)/time.Millisecond)
+    }, time.Second + 500*time.Millisecond, true)
+
+
+    for {
+        select {
+        case <-time.After(10*time.Second):
+            tw.Stop()
+            time.Sleep(time.Second)
+            return
+        }
+    }
+}
+
+func TestSyncHieraTimeWheel5(t *testing.T) {
+    hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 100*time.Millisecond }
+    tw := hierarchical.NewHieraTimeWheel(2*time.Hour, hieraTimes, 10, 10)
+    tw.Start()
+
+    now := time.Now()
+
+    tw.Add(func() {
+        fmt.Printf("timeout: %d test0 cancel test1\n", time.Since(now)/time.Millisecond)
+        tw.Add(func() {
+            fmt.Printf("timeout %d ms test1\n", time.Since(now)/time.Millisecond)
+        }, 2*time.Second, false)
+    }, time.Second, false)
+
+
+    for {
+        select {
+        case <-time.After(5*time.Second):
+            tw.Stop()
+            time.Sleep(time.Second)
+            return
+        }
+    }
+}
+
+func TestAsyncTimeWheel6(t *testing.T) {
+    hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 100*time.Millisecond }
+    tw := hierarchical.NewHieraTimeWheel(2*time.Hour, hieraTimes, 10, 10)
+    tw.Start()
+
+    type mydata struct {
+        str string
+        time time.Time
+    }
+
+    for i:=1; i<=50; i++ {
+        data := mydata{fmt.Sprintf("test%d", i), time.Now()}
+        tw.Add(func() {
+            fmt.Printf("timeout %d ms %s\n", time.Since(data.time)/time.Millisecond, data.str)
+        }, time.Duration(i*100)*time.Millisecond, false)
+    }
+
+    for {
+        select {
+        case <-time.After(10*time.Second):
+            tw.Stop()
+            time.Sleep(time.Second)
+            return
+        }
+    }
+
 }

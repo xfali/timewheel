@@ -15,27 +15,39 @@ import (
     "github.com/xfali/timewheel"
     "github.com/xfali/timewheel/sync"
     "github.com/xfali/goutils/atomic"
-    "fmt"
     "errors"
 )
+
+type HieraTimer struct {
+    timewheel.TimerData
+    tw *HieraTimeWheel
+    timer timewheel.Timer
+    pastTime time.Duration
+    rmFlag   atomic.AtomicBool
+}
 
 //Hierarchical Timing Wheels
 type HieraTimeWheel struct {
     timeWheels [] timewheel.TimeWheel
     hieraTimes   []time.Duration
-    stop     atomic.AtomicBool
+    stop chan bool
+    addChan  chan *HieraTimer
+    rmChan   chan *HieraTimer
 }
 
 //创建一个通用的时间轮，分层数据格式为：时间由大到小排列，如hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 20*time.Millisecond }
-func NewHieraTimeWheel(duration time.Duration, hieraTimes []time.Duration) *HieraTimeWheel {
+func NewHieraTimeWheel(duration time.Duration, hieraTimes []time.Duration, addMax int, rmMax int) *HieraTimeWheel {
     if len(hieraTimes) < 2 {
         return nil
     }
 
-    tw := &HieraTimeWheel{}
     deep := len(hieraTimes)
-
-    tw.timeWheels = make([]timewheel.TimeWheel, deep)
+    tw := &HieraTimeWheel{
+        timeWheels:make([]timewheel.TimeWheel, deep),
+        stop:     make(chan bool),
+        addChan:  make(chan *HieraTimer, addMax),
+        rmChan:   make(chan *HieraTimer, rmMax),
+    }
 
     secondTick := false
 
@@ -65,23 +77,51 @@ func NewHieraTimeWheel(duration time.Duration, hieraTimes []time.Duration) *Hier
     }
 
     tw.hieraTimes = hieraTimes
-    tw.stop = atomic.AtomicBool(1)
     return tw
 }
 
 func (htw *HieraTimeWheel) Start() {
-    htw.stop = 0
+    go func() {
+        now := time.Now()
+        cur := now
+        tickTime := htw.hieraTimes[len(htw.hieraTimes)-1]
+        for {
+            //FIXME: 增加timer和tick跳动必须二选一，否则增加的timer会计时不准确。
+            //但是当大量同时注册timer时，有可能造成间隔了多个tick才开始回调
+            select {
+            case <-htw.stop:
+                return
+            case timer, ok := <-htw.addChan:
+                if ok {
+                    htw.add2Slot(timer)
+                }
+            default:
+                passTime := time.Since(now)
+                if passTime < tickTime {
+                    time.Sleep(tickTime - passTime)
+                }
+                cur = time.Now()
+                htw.Tick(tickTime)
+                now = cur
+            }
+            select {
+            case <-htw.stop:
+                return
+            case rmCh, ok := <-htw.rmChan:
+                if ok {
+                    htw.removeTimer(rmCh)
+                }
+            default:
+            }
+        }
+    }()
 }
 
 func (htw *HieraTimeWheel) Stop() {
-    htw.stop.Set()
+    close(htw.stop)
 }
 
 func (htw *HieraTimeWheel) Tick(duration time.Duration) {
-    if htw.stop.IsSet() {
-        return
-    }
-    //fmt.Println(duration / time.Millisecond)
     htw.timeWheels[len(htw.timeWheels)-1].Tick(duration)
 }
 
@@ -90,19 +130,45 @@ func (htw *HieraTimeWheel) Add(callback timewheel.OnTimeout, expire time.Duratio
         return nil, errors.New("expire time is too small")
     }
 
-    absoluteTime := htw.absoluteTime(expire)
-    if repeat {
-        return htw.addTime(0, func() {
+    aTimer := &HieraTimer{
+        TimerData: timewheel.TimerData{callback, expire, repeat},
+        tw: htw,
+        rmFlag : 0,
+    }
+    htw.addChan <- aTimer
+    return aTimer, nil
+}
+
+func (htw *HieraTimeWheel) add2Slot(timer *HieraTimer) {
+    absoluteTime := htw.absoluteTime(timer.Expire)
+    if timer.rmFlag.IsSet() {
+        return
+    }
+    if timer.Repeat {
+        callback := timer.Callback
+        timer.Callback = func() {
             callback()
-            htw.Add(callback, expire, repeat)
-        }, absoluteTime, repeat)
+            timer.Callback = callback
+            htw.add2Slot(timer)
+        }
+        htw.addTime(0, timer, absoluteTime)
     } else {
-        return htw.addTime(0, callback, absoluteTime, repeat)
+        htw.addTime(0, timer, absoluteTime)
+    }
+}
+
+func (htw *HieraTimeWheel) removeTimer(timer *HieraTimer) {
+    if timer.timer != nil {
+        timer.timer.Cancel()
     }
 }
 
 func (htw *HieraTimeWheel) RollTime() (time.Duration) {
-    return 0
+    var time time.Duration = 0
+    for i:=0; i<len(htw.timeWheels); i++ {
+        time += htw.timeWheels[i].RollTime()
+    }
+    return time
 }
 
 func (htw *HieraTimeWheel) parse(expire time.Duration) (int) {
@@ -132,7 +198,7 @@ func (htw *HieraTimeWheel) absoluteTime(expire time.Duration) (time.Duration) {
     return expire
 }
 
-func (htw *HieraTimeWheel)addTime(deep int, callback timewheel.OnTimeout, expire time.Duration, repeat bool) (timewheel.Timer, error) {
+func (htw *HieraTimeWheel)addTime(deep int, timer *HieraTimer, expire time.Duration) {
     var nextTime time.Duration
     if deep == 0 {
         nextTime = expire / htw.hieraTimes[deep]
@@ -141,26 +207,33 @@ func (htw *HieraTimeWheel)addTime(deep int, callback timewheel.OnTimeout, expire
     }
 
     if deep == len(htw.hieraTimes)-1 {
-        fmt.Println("finally: ", deep)
         if nextTime > 0 {
-            return htw.timeWheels[deep].Add(func() {
-                callback()
+            tmpTimer, _ := htw.timeWheels[deep].Add(func() {
+                timer.Callback()
             }, nextTime*htw.hieraTimes[deep], false)
+            timer.timer = tmpTimer
         } else {
-            callback()
-            return nil, nil
+            timer.Callback()
         }
     } else {
         if nextTime > 0 {
-            fmt.Println("addTime: ", deep)
-            now := time.Now()
-            return htw.timeWheels[deep].Add(func() {
-                fmt.Println("addTime ", time.Since(now))
-                htw.addTime(deep + 1, callback, expire, repeat)
+            tmpTimer, _ := htw.timeWheels[deep].Add(func() {
+                htw.addTime(deep + 1, timer, expire)
             }, nextTime*htw.hieraTimes[deep], false)
+            timer.timer = tmpTimer
         } else {
-            return htw.addTime(deep + 1, callback, expire, repeat)
+            htw.addTime(deep + 1, timer, expire)
         }
     }
+}
+
+func (aTimer *HieraTimer) Cancel() {
+    aTimer.rmFlag.Set()
+    aTimer.tw.rmChan <- aTimer
+}
+
+func (aTimer *HieraTimer) PastTime() (time.Duration) {
+    //NOTICE:异步时间轮的Tick与Add在同一个select，所以需要+1
+    return aTimer.pastTime
 }
 

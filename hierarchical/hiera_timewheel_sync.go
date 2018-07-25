@@ -15,7 +15,6 @@ import (
     "github.com/xfali/timewheel"
     "github.com/xfali/timewheel/sync"
     "github.com/xfali/goutils/atomic"
-    "fmt"
     "errors"
 )
 
@@ -81,7 +80,6 @@ func (htw *SyncHieraTimeWheel) Tick(duration time.Duration) {
     if htw.stop.IsSet() {
         return
     }
-    //fmt.Println(duration / time.Millisecond)
     htw.timeWheels[len(htw.timeWheels)-1].Tick(duration)
 }
 
@@ -141,7 +139,6 @@ func (htw *SyncHieraTimeWheel)addTime(deep int, callback timewheel.OnTimeout, ex
     }
 
     if deep == len(htw.hieraTimes)-1 {
-        fmt.Println("finally: ", deep)
         if nextTime > 0 {
             return htw.timeWheels[deep].Add(func() {
                 callback()
@@ -152,10 +149,7 @@ func (htw *SyncHieraTimeWheel)addTime(deep int, callback timewheel.OnTimeout, ex
         }
     } else {
         if nextTime > 0 {
-            fmt.Println("addTime: ", deep)
-            now := time.Now()
             return htw.timeWheels[deep].Add(func() {
-                fmt.Println("addTime ", time.Since(now))
                 htw.addTime(deep + 1, callback, expire, repeat)
             }, nextTime*htw.hieraTimes[deep], false)
         } else {
