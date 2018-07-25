@@ -192,3 +192,31 @@ func TestAsyncTimeWheel6(t *testing.T) {
     }
 
 }
+
+func TestAsyncTimeWheel7(t *testing.T) {
+    hieraTimes := []time.Duration{ time.Minute, 100*time.Millisecond }
+    tw := hierarchical.NewHieraTimeWheel(2*time.Hour, hieraTimes, 10, 10)
+    tw.Start()
+
+    type mydata struct {
+        str string
+        time time.Time
+    }
+
+    for i:=1; i<=50; i++ {
+        data := mydata{fmt.Sprintf("test%d", i), time.Now()}
+        tw.Add(func() {
+            fmt.Printf("timeout %d ms %s\n", time.Since(data.time)/time.Millisecond, data.str)
+        }, time.Duration(i*100)*time.Millisecond, false)
+    }
+
+    for {
+        select {
+        case <-time.After(10*time.Second):
+            tw.Stop()
+            time.Sleep(time.Second)
+            return
+        }
+    }
+
+}

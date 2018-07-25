@@ -18,7 +18,7 @@ import (
 )
 
 func TestAsyncTimeWheel(t *testing.T) {
-    tw := async.New(100*time.Millisecond, 8*time.Second)
+    tw := async.New(100*time.Millisecond, 8*time.Second, 10, 10)
     tw.Start()
 
     now := time.Now()
@@ -68,7 +68,7 @@ func TestAsyncTimeWheel(t *testing.T) {
 }
 
 func TestAsyncTimeWheel2(t *testing.T) {
-    tw := async.New(100*time.Millisecond, 8*time.Second)
+    tw := async.New(100*time.Millisecond, 8*time.Second, 10, 10)
     tw.Start()
 
     now := time.Now()
@@ -92,7 +92,7 @@ func TestAsyncTimeWheel2(t *testing.T) {
 }
 
 func TestAsyncTimeWheel3(t *testing.T) {
-    tw := async.New(100*time.Millisecond, 8*time.Second)
+    tw := async.New(100*time.Millisecond, 8*time.Second, 10, 10)
     tw.Start()
 
     type mydata struct {
@@ -119,7 +119,7 @@ func TestAsyncTimeWheel3(t *testing.T) {
 }
 
 func TestAsyncTimeWheel4(t *testing.T) {
-    tw := async.New(100*time.Millisecond, 8*time.Second)
+    tw := async.New(100*time.Millisecond, 8*time.Second, 10, 10)
     tw.Start()
 
     now := time.Now()
@@ -145,7 +145,7 @@ func TestAsyncTimeWheel4(t *testing.T) {
 }
 
 func TestAsyncTimeWheel5(t *testing.T) {
-    tw := async.New(100*time.Millisecond, 8*time.Second)
+    tw := async.New(100*time.Millisecond, 8*time.Second, 10, 10)
     tw.Start()
 
     now := time.Now()
@@ -166,7 +166,7 @@ func TestAsyncTimeWheel5(t *testing.T) {
 }
 
 func TestASyncTimeWheel6(t *testing.T) {
-    tw := async.New(100*time.Millisecond, 8*time.Second)
+    tw := async.New(100*time.Millisecond, 8*time.Second, 10, 10)
     tw.Start()
 
     now := time.Now()

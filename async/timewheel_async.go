@@ -18,11 +18,6 @@ import (
     "github.com/xfali/goutils/atomic"
 )
 
-const (
-    AddChanSize    = 10
-    RemoveChanSize = 10
-)
-
 type ASyncTimer struct {
     tw *TimeWheelAsync
     timewheel.TimerData
@@ -40,7 +35,7 @@ type TimeWheelAsync struct {
     index    int
 }
 
-func New(tickTime time.Duration, duration time.Duration) *TimeWheelAsync {
+func New(tickTime time.Duration, duration time.Duration, addMax int, rmMax int) *TimeWheelAsync {
     if tickTime > duration {
         return nil
     }
@@ -49,8 +44,8 @@ func New(tickTime time.Duration, duration time.Duration) *TimeWheelAsync {
         slots:    make([] *list.List, duration/tickTime),
         tickTime: tickTime,
         stop:     make(chan bool),
-        addChan:  make(chan *ASyncTimer, AddChanSize),
-        rmChan:   make(chan *ASyncTimer, RemoveChanSize),
+        addChan:  make(chan *ASyncTimer, addMax),
+        rmChan:   make(chan *ASyncTimer, rmMax),
         index:    0,
     }
 
