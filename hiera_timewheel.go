@@ -31,11 +31,12 @@ type HieraTimeWheel struct {
     stop chan bool
     addChan  chan *HieraTimer
     rmChan   chan *HieraTimer
+    maxExpire time.Duration
 }
 
 //创建一个通用的时间轮，分层数据格式为：时间由大到小排列，如hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 20*time.Millisecond }
 func NewAsyncHiera(duration time.Duration, hieraTimes []time.Duration, addMax int, rmMax int) *HieraTimeWheel {
-    if len(hieraTimes) < 2 {
+    if len(hieraTimes) < 2 || duration < hieraTimes[0]{
         return nil
     }
 
@@ -50,6 +51,8 @@ func NewAsyncHiera(duration time.Duration, hieraTimes []time.Duration, addMax in
     secondTick := false
 
     time := duration / hieraTimes[0]
+    tw.maxExpire = time * hieraTimes[0]
+
     if time > 0 {
         secondTick = true
         wheel := NewSyncOne(hieraTimes[0], time*hieraTimes[0])
@@ -126,6 +129,9 @@ func (htw *HieraTimeWheel) Tick(duration time.Duration) {
 func (htw *HieraTimeWheel) Add(callback OnTimeout, expire time.Duration, repeat bool) (Timer, error) {
     if expire < htw.hieraTimes[len(htw.hieraTimes)-1] {
         return nil, errors.New("expire time is too small")
+    }
+    if expire > htw.maxExpire {
+        return nil, errors.New("expire time is too large")
     }
 
     aTimer := &HieraTimer{

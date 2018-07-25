@@ -194,21 +194,18 @@ func TestAsyncTimeWheel6(t *testing.T) {
 }
 
 func TestAsyncTimeWheel7(t *testing.T) {
-    hieraTimes := []time.Duration{ time.Minute, 100*time.Millisecond }
-    tw := timewheel.NewAsyncHiera(2*time.Hour, hieraTimes, 10, 10)
+    hieraTimes := []time.Duration{ time.Second, 100*time.Millisecond }
+    tw := timewheel.NewAsyncHiera(time.Second, hieraTimes, 10, 10)
     tw.Start()
 
-    type mydata struct {
-        str string
-        time time.Time
-    }
+    now := time.Now()
+    tw.Add(func() {
+        fmt.Println("timeout no repeat: ", time.Since(now))
+    }, time.Second, false)
 
-    for i:=1; i<=50; i++ {
-        data := mydata{fmt.Sprintf("test%d", i), time.Now()}
-        tw.Add(func() {
-            fmt.Printf("timeout %d ms %s\n", time.Since(data.time)/time.Millisecond, data.str)
-        }, time.Duration(i*100)*time.Millisecond, false)
-    }
+    tw.Add(func() {
+        fmt.Println("timeout repeat: ", time.Since(now))
+    }, time.Second, true)
 
     for {
         select {
@@ -218,5 +215,4 @@ func TestAsyncTimeWheel7(t *testing.T) {
             return
         }
     }
-
 }

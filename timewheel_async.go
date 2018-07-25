@@ -34,6 +34,9 @@ type TimeWheelAsync struct {
     index    int
 }
 
+//创建一个单层的异步时间轮
+//tickTime：一个tick的时间
+//duration：最长的过期时间，不能小于tickTime
 func NewAsyncOne(tickTime time.Duration, duration time.Duration, addMax int, rmMax int) *TimeWheelAsync {
     if tickTime > duration {
         return nil

@@ -33,6 +33,9 @@ type TimeWheelsync struct {
     lastTime time.Duration
 }
 
+//创建一个单层的同步时间轮
+//tickTime：一个tick的时间
+//duration：最长的过期时间，不能小于tickTime
 func NewSyncOne(tickTime time.Duration, duration time.Duration) *TimeWheelsync {
     if tickTime > duration {
         return nil

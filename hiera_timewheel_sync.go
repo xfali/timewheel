@@ -21,11 +21,12 @@ type SyncHieraTimeWheel struct {
     timeWheels [] TimeWheel
     hieraTimes   []time.Duration
     stop     atomic.AtomicBool
+    maxExpire time.Duration
 }
 
 //创建一个通用的时间轮，分层数据格式为：时间由大到小排列，如hieraTimes := []time.Duration{ time.Hour, time.Minute, time.Second, 20*time.Millisecond }
 func NewSyncHiera(duration time.Duration, hieraTimes []time.Duration) TimeWheel {
-    if len(hieraTimes) < 2 {
+    if len(hieraTimes) < 2 || duration < hieraTimes[0]{
         return nil
     }
 
@@ -37,6 +38,7 @@ func NewSyncHiera(duration time.Duration, hieraTimes []time.Duration) TimeWheel 
     secondTick := false
 
     time := duration / hieraTimes[0]
+    tw.maxExpire = time * hieraTimes[0]
     if time > 0 {
         secondTick = true
         wheel := NewSyncOne(hieraTimes[0], time*hieraTimes[0])
@@ -84,6 +86,10 @@ func (htw *SyncHieraTimeWheel) Tick(duration time.Duration) {
 func (htw *SyncHieraTimeWheel) Add(callback OnTimeout, expire time.Duration, repeat bool) (Timer, error) {
     if expire < htw.hieraTimes[len(htw.hieraTimes)-1] {
         return nil, errors.New("expire time is too small")
+    }
+
+    if expire > htw.maxExpire {
+        return nil, errors.New("expire time is too large")
     }
 
     absoluteTime := htw.absoluteTime(expire)
