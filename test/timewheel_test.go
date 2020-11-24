@@ -23,9 +23,16 @@ func TestNew(t *testing.T) {
 	test0(tw, t)
 	tw = timewheel.New(timewheel.AsyncOptSetDuration(time.Minute, time.Second))
 	test0(tw, t)
-	
+
 	t.Run("repeat 1 Hiera", func(t *testing.T) {
 		tw = timewheel.New(timewheel.AsyncOptSetDuration(time.Second, time.Second))
+		test0_0(tw, t)
+	})
+}
+
+func TestNew2(t *testing.T) {
+	t.Run("repeat 2 Hiera", func(t *testing.T) {
+		tw := timewheel.New(timewheel.AsyncOptSetDuration(10*time.Second, timewheel.DefaultMinDuration))
 		test0_0(tw, t)
 	})
 }
@@ -94,6 +101,7 @@ func test0_0(tw timewheel.TimeWheel, t *testing.T) {
 
 	_, err := tw.Add(func() {
 		t.Logf("timeout %d ms test3\n", time.Since(now)/time.Millisecond)
+		t.Log(tw.RollTime())
 	}, 1000*time.Millisecond, true)
 	if err != nil {
 		t.Fatal(err)
