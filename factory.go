@@ -47,7 +47,7 @@ func parseHieraTimes(max, min time.Duration) []time.Duration {
 	}
 	hiera = hiera[m:n]
 	if min < hiera[len(hiera)-1] {
-		if hiera[len(hiera)-1] % min != 0 {
+		if hiera[len(hiera)-1]%min != 0 {
 			panic(fmt.Sprintf("timewheel tick is invalid: %d, min tick: %d", hiera[len(hiera)-1], min))
 		}
 		hiera = append(hiera, min)
@@ -62,9 +62,16 @@ func AsyncOptSetDuration(max, min time.Duration) AsyncOpt {
 	}
 }
 
-func AsyncOptSetMinDuration(time time.Duration) AsyncOpt {
+func AsyncOptSetMaxDuration(max time.Duration) AsyncOpt {
 	return func(tw *HieraTimeWheel) {
-		tw.maxExpire = time
+		tw.maxExpire = max
+		tw.hieraTimes = parseHieraTimes(max, tw.hieraTimes[len(tw.hieraTimes)-1])
+	}
+}
+
+func AsyncOptSetMinDuration(min time.Duration) AsyncOpt {
+	return func(tw *HieraTimeWheel) {
+		tw.hieraTimes = parseHieraTimes(tw.maxExpire, tw.hieraTimes[len(tw.hieraTimes)-1])
 	}
 }
 
