@@ -71,7 +71,7 @@ func AsyncOptSetMaxDuration(max time.Duration) AsyncOpt {
 
 func AsyncOptSetMinDuration(min time.Duration) AsyncOpt {
 	return func(tw *HieraTimeWheel) {
-		tw.hieraTimes = parseHieraTimes(tw.maxExpire, tw.hieraTimes[len(tw.hieraTimes)-1])
+		tw.hieraTimes = parseHieraTimes(tw.maxExpire, min)
 	}
 }
 

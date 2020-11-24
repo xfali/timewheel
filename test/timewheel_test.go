@@ -23,7 +23,7 @@ func TestNew(t *testing.T) {
 	test0(tw, t)
 	tw = timewheel.New(timewheel.AsyncOptSetDuration(time.Minute, time.Second))
 	test0(tw, t)
-	tw = timewheel.New(timewheel.AsyncOptSetMinDuration(20 * time.Millisecond))
+	tw = timewheel.New(timewheel.AsyncOptSetMinDuration(25 * time.Millisecond))
 	test0(tw, t)
 
 	t.Run("repeat 1 Hiera", func(t *testing.T) {
