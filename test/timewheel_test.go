@@ -1,12 +1,7 @@
-/**
- * Copyright (C) 2018-2020, Xiongfa Li.
- * All right reserved.
- * @author xiongfa.li
- * @date 2018/7/24
- * @time 18:26
- * @version V1.0
- * Description:
- */
+// Copyright (C) 2019-2020, Xiongfa Li.
+// @author xiongfa.li
+// @version V1.0
+// Description:
 
 package test
 
@@ -17,9 +12,104 @@ import (
 	"time"
 )
 
-func TestSyncHieraTimeWheel1(t *testing.T) {
-	hieraTimes := []time.Duration{time.Hour, time.Minute, time.Second, 100 * time.Millisecond}
-	tw := timewheel.NewAsyncHiera(2*time.Hour, hieraTimes, 10, 10)
+func TestNewErr(t *testing.T) {
+	timewheel.New(timewheel.AsyncOptSetDuration(time.Second, 3*time.Millisecond))
+}
+
+func TestNew(t *testing.T) {
+	tw := timewheel.New(timewheel.AsyncOptSetDuration(time.Second, timewheel.DefaultMinDuration))
+	test0(tw, t)
+	tw = timewheel.New(timewheel.AsyncOptSetDuration(time.Second, time.Second))
+	test0(tw, t)
+	tw = timewheel.New(timewheel.AsyncOptSetDuration(time.Minute, time.Second))
+	test0(tw, t)
+	
+	t.Run("repeat 1 Hiera", func(t *testing.T) {
+		tw = timewheel.New(timewheel.AsyncOptSetDuration(time.Second, time.Second))
+		test0_0(tw, t)
+	})
+}
+
+func TestAsyncTimer1(t *testing.T) {
+	tw := timewheel.New()
+	test1(tw, t)
+}
+
+func TestAsyncTimer2(t *testing.T) {
+	tw := timewheel.New()
+	test2(tw, t)
+}
+
+func TestAsyncTimer3(t *testing.T) {
+	tw := timewheel.New()
+	test3(tw, t)
+}
+
+func TestAsyncTimer4(t *testing.T) {
+	tw := timewheel.New()
+	test4(tw, t)
+}
+
+func TestAsyncTimer5(t *testing.T) {
+	tw := timewheel.New()
+	test5(tw, t)
+}
+
+func TestAsyncTimer6(t *testing.T) {
+	tw := timewheel.New()
+	test6(tw, t)
+}
+
+func TestAsyncTimer7(t *testing.T) {
+	tw := timewheel.New(timewheel.AsyncOptSetDuration(time.Second, timewheel.DefaultMinDuration))
+	test7(tw, t)
+}
+
+func test0(tw timewheel.TimeWheel, t *testing.T) {
+	tw.Start()
+
+	now := time.Now()
+
+	_, err := tw.Add(func() {
+		t.Logf("timeout %d ms test3\n", time.Since(now)/time.Millisecond)
+	}, time.Second, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for {
+		select {
+		case <-time.After(2 * time.Second):
+			tw.Stop()
+			time.Sleep(time.Second)
+			return
+		}
+	}
+}
+
+func test0_0(tw timewheel.TimeWheel, t *testing.T) {
+	tw.Start()
+
+	now := time.Now()
+
+	_, err := tw.Add(func() {
+		t.Logf("timeout %d ms test3\n", time.Since(now)/time.Millisecond)
+	}, 1000*time.Millisecond, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for {
+		select {
+		case <-time.After(10 * time.Second):
+			tw.Stop()
+			time.Sleep(time.Second)
+			return
+		}
+	}
+}
+
+func test1(tw timewheel.TimeWheel, t *testing.T) {
 	tw.Start()
 
 	now := time.Now()
@@ -66,16 +156,14 @@ func TestSyncHieraTimeWheel1(t *testing.T) {
 	}
 }
 
-func TestSyncHieraTimeWheel2(t *testing.T) {
-	hieraTimes := []time.Duration{time.Hour, time.Minute, time.Second, 100 * time.Millisecond}
-	tw := timewheel.NewAsyncHiera(2*time.Hour, hieraTimes, 10, 10)
+func test2(tw timewheel.TimeWheel, t *testing.T) {
 	tw.Start()
 
 	now := time.Now()
 
 	timer, _ := tw.Add(func() {
 		fmt.Printf("timeout %d ms test3\n", time.Since(now)/time.Millisecond)
-	}, 2*time.Second, false)
+	}, 500*time.Millisecond, false)
 	timer.Cancel()
 
 	for {
@@ -88,9 +176,7 @@ func TestSyncHieraTimeWheel2(t *testing.T) {
 	}
 }
 
-func TestSyncHieraTimeWheel3(t *testing.T) {
-	hieraTimes := []time.Duration{time.Hour, time.Minute, time.Second, 100 * time.Millisecond}
-	tw := timewheel.NewAsyncHiera(2*time.Hour, hieraTimes, 10, 10)
+func test3(tw timewheel.TimeWheel, t *testing.T) {
 	tw.Start()
 
 	now := time.Now()
@@ -114,9 +200,7 @@ func TestSyncHieraTimeWheel3(t *testing.T) {
 	}
 }
 
-func TestSyncHieraTimeWheel4(t *testing.T) {
-	hieraTimes := []time.Duration{time.Hour, time.Minute, time.Second, 100 * time.Millisecond}
-	tw := timewheel.NewAsyncHiera(2*time.Hour, hieraTimes, 10, 10)
+func test4(tw timewheel.TimeWheel, t *testing.T) {
 	tw.Start()
 
 	now := time.Now()
@@ -135,9 +219,7 @@ func TestSyncHieraTimeWheel4(t *testing.T) {
 	}
 }
 
-func TestSyncHieraTimeWheel5(t *testing.T) {
-	hieraTimes := []time.Duration{time.Hour, time.Minute, time.Second, 100 * time.Millisecond}
-	tw := timewheel.NewAsyncHiera(2*time.Hour, hieraTimes, 10, 10)
+func test5(tw timewheel.TimeWheel, t *testing.T) {
 	tw.Start()
 
 	now := time.Now()
@@ -159,9 +241,7 @@ func TestSyncHieraTimeWheel5(t *testing.T) {
 	}
 }
 
-func TestAsyncTimeWheel6(t *testing.T) {
-	hieraTimes := []time.Duration{time.Hour, time.Minute, time.Second, 100 * time.Millisecond}
-	tw := timewheel.NewAsyncHiera(2*time.Hour, hieraTimes, 10, 10)
+func test6(tw timewheel.TimeWheel, t *testing.T) {
 	tw.Start()
 
 	type mydata struct {
@@ -187,9 +267,7 @@ func TestAsyncTimeWheel6(t *testing.T) {
 
 }
 
-func TestAsyncTimeWheel7(t *testing.T) {
-	hieraTimes := []time.Duration{time.Second, 100 * time.Millisecond}
-	tw := timewheel.NewAsyncHiera(time.Second, hieraTimes, 10, 10)
+func test7(tw timewheel.TimeWheel, t *testing.T) {
 	tw.Start()
 
 	now := time.Now()
